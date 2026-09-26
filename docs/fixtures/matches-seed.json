@@ -1,0 +1,19 @@
+[
+  { "group": "A", "homeTeam": "Argentina", "awayTeam": "Brasil", "kickoffAt": "2026-12-05T16:00:00Z" },
+  { "group": "B", "homeTeam": "Alemania", "awayTeam": "Portugal", "kickoffAt": "2026-12-05T20:00:00Z" },
+
+  { "group": "A", "homeTeam": "España", "awayTeam": "Francia", "kickoffAt": "2026-12-06T16:00:00Z" },
+  { "group": "B", "homeTeam": "Inglaterra", "awayTeam": "Países Bajos", "kickoffAt": "2026-12-06T20:00:00Z" },
+
+  { "group": "A", "homeTeam": "Argentina", "awayTeam": "España", "kickoffAt": "2026-12-09T16:00:00Z" },
+  { "group": "B", "homeTeam": "Alemania", "awayTeam": "Inglaterra", "kickoffAt": "2026-12-09T20:00:00Z" },
+
+  { "group": "A", "homeTeam": "Brasil", "awayTeam": "Francia", "kickoffAt": "2026-12-10T16:00:00Z" },
+  { "group": "B", "homeTeam": "Portugal", "awayTeam": "Países Bajos", "kickoffAt": "2026-12-10T20:00:00Z" },
+
+  { "group": "A", "homeTeam": "Francia", "awayTeam": "Argentina", "kickoffAt": "2026-12-13T16:00:00Z" },
+  { "group": "B", "homeTeam": "Países Bajos", "awayTeam": "Alemania", "kickoffAt": "2026-12-13T20:00:00Z" },
+
+  { "group": "A", "homeTeam": "Brasil", "awayTeam": "España", "kickoffAt": "2026-12-14T16:00:00Z" },
+  { "group": "B", "homeTeam": "Inglaterra", "awayTeam": "Portugal", "kickoffAt": "2026-12-14T20:00:00Z" }
+]
