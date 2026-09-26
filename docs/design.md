@@ -198,6 +198,8 @@ Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Predi
 | PUT | `/api/admin/matches/{matchId}/result` | Admin | Ingresa/corrige el resultado real y dispara recálculo |
 | GET | `/api/leaderboard` | User/Admin | Ranking global ordenado por puntos |
 
+**Criterio de orden y desempate del leaderboard** (`docs/spec.md` §6.4, definido aquí): 1) `TotalPoints` descendente; 2) a igualdad de puntos, cantidad de predicciones con marcador exacto (`PointsAwarded == 3`) descendente; 3) a igualdad de ambos, `Email` ascendente (orden alfabético), como desempate final determinístico. `LeaderboardEntryDto` expone `Email` y `ExactPredictions` además de `UserId`/`TotalPoints` para soportar este orden y mostrarlo en la UI.
+
 ## 8. Algoritmo de Puntuación (diseño técnico)
 
 Vive en `Domain.Services.ScoringEngine`, **puro** (sin I/O), para ser 100% testeable en el harness:
@@ -223,7 +225,7 @@ public static class ScoringEngine
 }
 ```
 
-`RecalculateScoresCommandHandler` (Application, despachado vía `IMediator` desde `AdminController`) itera todas las `Prediction` de un `Match` y reasigna `PointsAwarded` invocando `ScoringEngine.CalculatePoints` — operación idempotente: correr el comando N veces con el mismo resultado produce el mismo estado final.
+`RecalculateScoresCommandHandler` itera todas las `Prediction` de un `Match` y reasigna `PointsAwarded` invocando `ScoringEngine.CalculatePoints` — operación idempotente: correr el comando N veces con el mismo resultado produce el mismo estado final. La orquestación vive en `SubmitMatchResultCommandHandler`, que inyecta `IMediator` y despacha `RecalculateScoresCommand` internamente tras persistir el resultado — `AdminController` solo despacha `SubmitMatchResultCommand` y traduce su `Result<MatchDto>` a HTTP; no orquesta ambos comandos él mismo.
 
 ## 9. Diseño del Seeder
 

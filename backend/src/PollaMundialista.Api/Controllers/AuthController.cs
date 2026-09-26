@@ -1,14 +1,10 @@
 using Mediator;
 using Microsoft.AspNetCore.Mvc;
+using PollaMundialista.Api.Common;
 using PollaMundialista.Application.Auth;
-using PollaMundialista.Application.Common;
-using PollaMundialista.Application.Enums;
 
 namespace PollaMundialista.Api.Controllers;
 
-// La función local `ToHttpResult` de Program.cs vive dentro del método Main generado por los
-// top-level statements: no es un miembro accesible de la clase parcial Program desde otro
-// archivo, así que se replica aquí como método privado en vez de compartirla.
 [ApiController]
 [Route("api/auth")]
 public class AuthController : ControllerBase
@@ -26,7 +22,7 @@ public class AuthController : ControllerBase
         var command = new RegisterUserCommand(request.Email, request.Password);
         var result = await _mediator.Send(command, ct);
 
-        return ToHttpResult(result);
+        return result.ToActionResult();
     }
 
     [HttpPost("login")]
@@ -35,22 +31,7 @@ public class AuthController : ControllerBase
         var query = new LoginQuery(request.Email, request.Password);
         var result = await _mediator.Send(query, ct);
 
-        return ToHttpResult(result);
-    }
-
-    private IActionResult ToHttpResult<T>(Result<T> result)
-    {
-        if (result.IsSuccess)
-            return Ok(result.Value);
-
-        return result.Error switch
-        {
-            ResultError.NotFound => NotFound(new { message = result.ErrorMessage }),
-            ResultError.Conflict => Conflict(new { message = result.ErrorMessage }),
-            ResultError.Validation => BadRequest(new { message = result.ErrorMessage }),
-            ResultError.Unauthorized => Unauthorized(new { message = result.ErrorMessage }),
-            _ => BadRequest(new { message = result.ErrorMessage })
-        };
+        return result.ToActionResult();
     }
 }
 

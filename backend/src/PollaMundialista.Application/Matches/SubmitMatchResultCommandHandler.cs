@@ -10,10 +10,12 @@ namespace PollaMundialista.Application.Matches;
 public class SubmitMatchResultCommandHandler : ICommandHandler<SubmitMatchResultCommand, Result<MatchDto>>
 {
     private readonly IMatchRepository _matchRepository;
+    private readonly IMediator _mediator;
 
-    public SubmitMatchResultCommandHandler(IMatchRepository matchRepository)
+    public SubmitMatchResultCommandHandler(IMatchRepository matchRepository, IMediator mediator)
     {
         _matchRepository = matchRepository;
+        _mediator = mediator;
     }
 
     public async ValueTask<Result<MatchDto>> Handle(SubmitMatchResultCommand request, CancellationToken cancellationToken)
@@ -24,6 +26,10 @@ public class SubmitMatchResultCommandHandler : ICommandHandler<SubmitMatchResult
 
         match.SetResult(new MatchResult(request.HomeScore, request.AwayScore));
         await _matchRepository.UpdateAsync(match, cancellationToken);
+
+        var recalculateResult = await _mediator.Send(new RecalculateScoresCommand(request.MatchId), cancellationToken);
+        if (!recalculateResult.IsSuccess)
+            return Result<MatchDto>.Failure(recalculateResult.Error, recalculateResult.ErrorMessage!);
 
         var dto = new MatchDto(
             match.Id,
