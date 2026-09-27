@@ -1,0 +1,19 @@
+C4Component
+title Componentes — .NET 10 Web API
+Container_Boundary(api, "Web API") {
+  Component(authCtrl, "AuthController", "ASP.NET Controller", "Login/Registro/Recuperación de contraseña")
+  Component(predCtrl, "PredictionsController", "ASP.NET Controller", "CRUD de predicciones")
+  Component(adminCtrl, "AdminController", "ASP.NET Controller", "Carga de resultados")
+  Component(lbCtrl, "LeaderboardController", "ASP.NET Controller", "Ranking e historial")
+  Component(appServices, "Application Services", "Use Cases vía Mediator", "Orquesta reglas de negocio")
+  Component(scoring, "ScoringEngine", "Domain Service", "Algoritmo 3/1/0 pts")
+  Component(repos, "Repositories", "EF Core", "Acceso a datos")
+}
+ContainerDb(db, "PostgreSQL (Neon)")
+Rel(authCtrl, appServices, "usa")
+Rel(predCtrl, appServices, "usa")
+Rel(adminCtrl, appServices, "usa")
+Rel(lbCtrl, appServices, "usa")
+Rel(appServices, scoring, "usa")
+Rel(appServices, repos, "usa")
+Rel(repos, db, "EF Core")

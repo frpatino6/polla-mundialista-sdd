@@ -19,7 +19,7 @@ Clean Architecture en el backend con dependencias apuntando siempre hacia el Dom
 
 ## 2. Modelo C4
 
-> El diagrama final entregable (Task de cierre) se produce con estas mismas vistas en una herramienta de diagramación (Structurizr, draw.io o Mermaid exportado). Se documenta aquí en Mermaid como fuente versionada.
+> **Actualizado en la Tarea #19** para reflejar el sistema realmente desplegado (Tareas #17/#18): backend y frontend son dos servicios separados en Render.com, y la base de datos es el Neon real (no un Postgres gestionado por Render — ver §12 y `tasks.md` Tarea #17). El export final (PNG/SVG) vive en `docs/architecture/`, generado desde estas mismas vistas Mermaid como fuente versionada.
 
 ### 2.1 Nivel 1 — Contexto
 
@@ -29,24 +29,26 @@ title Contexto del Sistema — Polla Mundialista
 Person(user, "Usuario", "Registra predicciones y consulta el leaderboard")
 Person(admin, "Administrador", "Carga resultados reales y gatilla el recálculo")
 System(polla, "Polla Mundialista", "Web app de predicciones deportivas")
-System_Ext(render, "Render.com", "Hosting cloud de contenedores")
+System_Ext(render, "Render.com", "Hosting cloud — 2 servicios: Web Service (API) + Static Site (SPA)")
+System_Ext(neon, "Neon", "PostgreSQL serverless gestionado externamente")
 Rel(user, polla, "Usa", "HTTPS")
 Rel(admin, polla, "Administra", "HTTPS")
 Rel(polla, render, "Se despliega en")
+Rel(polla, neon, "Persiste datos en")
 ```
 
 ### 2.2 Nivel 2 — Contenedores
 
 ```mermaid
 C4Container
-title Contenedores — Polla Mundialista
+title Contenedores — Polla Mundialista (desplegado en Render.com)
 Person(user, "Usuario/Admin")
-Container(spa, "SPA Angular", "Angular, Standalone Components", "UI de predicciones, admin y leaderboard")
-Container(api, "Web API", ".NET 10", "Expone REST, aplica Clean Architecture")
-ContainerDb(db, "PostgreSQL", "PostgreSQL 16", "Persistencia de usuarios, partidos, predicciones")
+Container(spa, "SPA Angular", "Angular 22, Standalone Components", "UI de predicciones, admin, leaderboard y recuperación de contraseña — Render Static Site")
+Container(api, "Web API", ".NET 10, Docker", "Expone REST, aplica Clean Architecture — Render Web Service")
+ContainerDb(db, "PostgreSQL (Neon)", "PostgreSQL serverless", "Persistencia de usuarios, partidos, predicciones y tokens de reseteo")
 Rel(user, spa, "Usa", "HTTPS")
-Rel(spa, api, "Consume", "JSON/JWT sobre HTTPS")
-Rel(api, db, "Lee/Escribe", "EF Core / Npgsql")
+Rel(spa, api, "Consume", "JSON/JWT sobre HTTPS, CORS restringido al origen del Static Site")
+Rel(api, db, "Lee/Escribe", "EF Core / Npgsql sobre TLS")
 ```
 
 ### 2.3 Nivel 3 — Componentes (Web API)
@@ -55,15 +57,15 @@ Rel(api, db, "Lee/Escribe", "EF Core / Npgsql")
 C4Component
 title Componentes — .NET 10 Web API
 Container_Boundary(api, "Web API") {
-  Component(authCtrl, "AuthController", "ASP.NET Controller", "Login/Registro")
+  Component(authCtrl, "AuthController", "ASP.NET Controller", "Login/Registro/Recuperación de contraseña")
   Component(predCtrl, "PredictionsController", "ASP.NET Controller", "CRUD de predicciones")
   Component(adminCtrl, "AdminController", "ASP.NET Controller", "Carga de resultados")
   Component(lbCtrl, "LeaderboardController", "ASP.NET Controller", "Ranking e historial")
-  Component(appServices, "Application Services", "Use Cases", "Orquesta reglas de negocio")
+  Component(appServices, "Application Services", "Use Cases vía Mediator", "Orquesta reglas de negocio")
   Component(scoring, "ScoringEngine", "Domain Service", "Algoritmo 3/1/0 pts")
   Component(repos, "Repositories", "EF Core", "Acceso a datos")
 }
-ContainerDb(db, "PostgreSQL")
+ContainerDb(db, "PostgreSQL (Neon)")
 Rel(authCtrl, appServices, "usa")
 Rel(predCtrl, appServices, "usa")
 Rel(adminCtrl, appServices, "usa")

@@ -1,0 +1,11 @@
+C4Context
+title Contexto del Sistema — Polla Mundialista
+Person(user, "Usuario", "Registra predicciones y consulta el leaderboard")
+Person(admin, "Administrador", "Carga resultados reales y gatilla el recálculo")
+System(polla, "Polla Mundialista", "Web app de predicciones deportivas")
+System_Ext(render, "Render.com", "Hosting cloud — 2 servicios: Web Service (API) + Static Site (SPA)")
+System_Ext(neon, "Neon", "PostgreSQL serverless gestionado externamente")
+Rel(user, polla, "Usa", "HTTPS")
+Rel(admin, polla, "Administra", "HTTPS")
+Rel(polla, render, "Se despliega en")
+Rel(polla, neon, "Persiste datos en")

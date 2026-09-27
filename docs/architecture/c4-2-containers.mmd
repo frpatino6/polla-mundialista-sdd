@@ -1,0 +1,9 @@
+C4Container
+title Contenedores — Polla Mundialista (desplegado en Render.com)
+Person(user, "Usuario/Admin")
+Container(spa, "SPA Angular", "Angular 22, Standalone Components", "UI de predicciones, admin, leaderboard y recuperación de contraseña — Render Static Site")
+Container(api, "Web API", ".NET 10, Docker", "Expone REST, aplica Clean Architecture — Render Web Service")
+ContainerDb(db, "PostgreSQL (Neon)", "PostgreSQL serverless", "Persistencia de usuarios, partidos, predicciones y tokens de reseteo")
+Rel(user, spa, "Usa", "HTTPS")
+Rel(spa, api, "Consume", "JSON/JWT sobre HTTPS, CORS restringido al origen del Static Site")
+Rel(api, db, "Lee/Escribe", "EF Core / Npgsql sobre TLS")

@@ -175,11 +175,12 @@ Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripc
 
 ---
 
-### Tarea #19 — Diagrama de Arquitectura C4 (entregable final)
+### Tarea #19 — Diagrama de Arquitectura C4 (entregable final) — ✅ COMPLETA
 **Agente sugerido:** `architect`
 **Entregable:** export de las vistas Mermaid de `design.md` §2 a `docs/architecture/` (PNG/SVG o enlace a Structurizr/draw.io).
 **Criterios de aceptación:** el diagrama refleja el sistema realmente desplegado (contenedores y componentes coinciden con Tareas #17 y #18).
 **Dependencias:** Tareas #17 y #18.
+**Estado:** `design.md` §2 actualizado (2 servicios Render + Neon externo, en vez del Postgres/Docker Compose original) y exportado a `docs/architecture/` como `.mmd` (fuente) + `.svg`/`.png` (entregable) para las 3 vistas: contexto, contenedores y componentes de la API.
 
 ---
 
