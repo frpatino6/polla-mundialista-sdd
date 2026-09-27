@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { MatchesService } from '../../core/services/matches.service';
@@ -42,7 +43,11 @@ describe('Predictions', () => {
     vi.useRealTimers();
   });
 
-  function setup(matches: MatchDto[], history: PredictionHistoryEntryDto[] = []) {
+  function setup(
+    matches: MatchDto[],
+    history: PredictionHistoryEntryDto[] = [],
+    role: 'User' | 'Admin' | null = null,
+  ) {
     matchesServiceMock = { getMatches: vi.fn().mockReturnValue(of(matches)) };
     predictionsServiceMock = {
       getMyHistory: vi.fn().mockReturnValue(of(history)),
@@ -51,11 +56,12 @@ describe('Predictions', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([]),
         { provide: MatchesService, useValue: matchesServiceMock },
         { provide: PredictionsService, useValue: predictionsServiceMock },
         {
           provide: AuthService,
-          useValue: { currentUser: { email: 'user@example.com' }, logout: vi.fn() },
+          useValue: { currentUser: { email: 'user@example.com' }, role, logout: vi.fn() },
         },
       ],
     });
@@ -174,5 +180,30 @@ describe('Predictions', () => {
     expect(vm.errorMessage).toBe('El partido ya inició.');
     expect(vm.locked).toBe(true);
     expect(vm.form.disabled).toBe(true);
+  });
+
+  it('exposes isAdmin=true (and shows the Panel Admin link) for an Admin session', () => {
+    const fixture = setup([createMatch()], [], 'Admin');
+
+    expect(fixture.componentInstance.isAdmin).toBe(true);
+    const adminLink: HTMLAnchorElement | null =
+      fixture.nativeElement.querySelector('a[routerLink="/admin"]');
+    expect(adminLink).not.toBeNull();
+  });
+
+  it('hides the Panel Admin link for a non-Admin session', () => {
+    const fixture = setup([createMatch()], [], 'User');
+
+    expect(fixture.componentInstance.isAdmin).toBe(false);
+    const adminLink: HTMLAnchorElement | null =
+      fixture.nativeElement.querySelector('a[routerLink="/admin"]');
+    expect(adminLink).toBeNull();
+  });
+
+  it('always shows the Leaderboard and Mi Historial links, regardless of role', () => {
+    const fixture = setup([createMatch()], [], 'User');
+
+    expect(fixture.nativeElement.querySelector('a[routerLink="/leaderboard"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('a[routerLink="/history"]')).not.toBeNull();
   });
 });

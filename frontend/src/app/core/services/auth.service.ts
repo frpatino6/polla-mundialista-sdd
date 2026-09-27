@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { LoginResultDto, Session, UserDto, UserRole } from '../models/auth.models';
 import { ApiService } from './api.service';
@@ -13,6 +14,7 @@ const SESSION_STORAGE_KEY = 'polla_session';
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService extends ApiService {
+  private readonly router = inject(Router);
   private readonly sessionSubject = new BehaviorSubject<Session | null>(this.restoreSession());
 
   /** Observable del estado de sesión actual (null si no hay usuario logueado). */
@@ -44,9 +46,17 @@ export class AuthService extends ApiService {
       .pipe(tap((result) => this.saveSession(result)));
   }
 
+  /**
+   * Limpia la sesión y navega a /login. Se centraliza la navegación aquí (en vez
+   * de en cada componente que llama logout()) porque los guards (authGuard/adminGuard)
+   * solo se ejecutan al ACTIVAR una ruta: si solo se limpia el estado sin navegar,
+   * el usuario queda "colgado" en la pantalla actual con datos obsoletos hasta que
+   * navega manualmente a otro lado.
+   */
   logout(): void {
     localStorage.removeItem(SESSION_STORAGE_KEY);
     this.sessionSubject.next(null);
+    this.router.navigateByUrl('/login');
   }
 
   private saveSession(result: LoginResultDto): void {

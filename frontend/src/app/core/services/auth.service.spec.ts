@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { LoginResultDto, Session, UserDto } from '../models/auth.models';
 import { AuthService } from './auth.service';
@@ -10,12 +11,18 @@ const SESSION_STORAGE_KEY = 'polla_session';
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
+  let router: { navigateByUrl: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     localStorage.removeItem(SESSION_STORAGE_KEY);
+    router = { navigateByUrl: vi.fn() };
 
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: Router, useValue: router },
+      ],
     });
 
     service = TestBed.inject(AuthService);
@@ -79,7 +86,7 @@ describe('AuthService', () => {
     expect(service.isAuthenticated).toBe(false);
   });
 
-  it('logout() clears the session from state and localStorage', () => {
+  it('logout() clears the session from state and localStorage, and navigates to /login', () => {
     const loginResult: LoginResultDto = {
       token: 'jwt-token',
       userId: 'user-1',
@@ -96,6 +103,7 @@ describe('AuthService', () => {
     expect(service.isAuthenticated).toBe(false);
     expect(service.currentUser).toBeNull();
     expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 
   it('restores an existing session from localStorage on construction', () => {
@@ -109,7 +117,11 @@ describe('AuthService', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: Router, useValue: router },
+      ],
     });
     const restoredService = TestBed.inject(AuthService);
 

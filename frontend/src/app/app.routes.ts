@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { adminGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -15,6 +16,23 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./predictions/predictions/predictions').then((m) => m.Predictions),
+  },
+  {
+    path: 'admin',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./admin/admin-matches/admin-matches').then((m) => m.AdminMatches),
+  },
+  {
+    path: 'leaderboard',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./leaderboard/leaderboard/leaderboard').then((m) => m.Leaderboard),
+  },
+  {
+    path: 'history',
+    canActivate: [authGuard],
+    loadComponent: () => import('./predictions/history/history').then((m) => m.History),
   },
   { path: '', pathMatch: 'full', redirectTo: 'predictions' },
   { path: '**', redirectTo: 'login' },

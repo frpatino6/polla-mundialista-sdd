@@ -7,6 +7,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { Subscription, forkJoin, interval, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { MatchesService } from '../../core/services/matches.service';
@@ -50,7 +51,7 @@ interface GroupSection {
  * pantalla sigue abierta (sin recargar).
  */
 @Component({
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [ReactiveFormsModule, DatePipe, RouterLink],
   selector: 'app-predictions',
   styleUrl: './predictions.css',
   templateUrl: './predictions.html',
@@ -62,6 +63,8 @@ export class Predictions implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
 
   readonly email = this.authService.currentUser?.email ?? null;
+  /** Enlace al Panel Admin visible solo para el rol Admin (Tarea #12). */
+  readonly isAdmin = this.authService.role === 'Admin';
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
 

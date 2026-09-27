@@ -1,0 +1,54 @@
+<div class="min-h-screen bg-slate-100 px-4 py-6">
+  <header class="mx-auto mb-6 flex max-w-3xl items-center justify-between">
+    <h1 class="text-xl font-semibold text-slate-800">Leaderboard</h1>
+    <a
+      routerLink="/predictions"
+      class="rounded bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900"
+    >
+      Volver a predicciones
+    </a>
+  </header>
+
+  <div class="mx-auto max-w-3xl">
+    @if (loading()) {
+      <p class="text-sm text-slate-600">Cargando leaderboard…</p>
+    } @else if (loadError()) {
+      <p class="text-sm text-red-600">{{ loadError() }}</p>
+    } @else if (entries().length === 0) {
+      <p class="text-sm text-slate-600">Todavía no hay predicciones registradas.</p>
+    } @else {
+      <div class="overflow-hidden rounded-lg bg-white shadow">
+        <table class="min-w-full divide-y divide-slate-200">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-slate-500">
+                Pos.
+              </th>
+              <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-slate-500">
+                Usuario
+              </th>
+              <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">
+                Puntos
+              </th>
+              <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">
+                Marcadores exactos
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (entry of entries(); track entry.userId; let i = $index) {
+              <tr>
+                <td class="px-4 py-2 text-sm text-slate-700">{{ i + 1 }}</td>
+                <td class="px-4 py-2 text-sm text-slate-800">{{ entry.email }}</td>
+                <td class="px-4 py-2 text-right text-sm text-slate-700">{{ entry.totalPoints }}</td>
+                <td class="px-4 py-2 text-right text-sm text-slate-700">
+                  {{ entry.exactPredictions }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,64 @@
+<div class="min-h-screen bg-slate-100 px-4 py-6">
+  <header class="mx-auto mb-6 flex max-w-3xl items-center justify-between">
+    <h1 class="text-xl font-semibold text-slate-800">Mi Historial</h1>
+    <a
+      routerLink="/predictions"
+      class="rounded bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900"
+    >
+      Volver a predicciones
+    </a>
+  </header>
+
+  <div class="mx-auto max-w-3xl">
+    @if (loading()) {
+      <p class="text-sm text-slate-600">Cargando historial…</p>
+    } @else if (loadError()) {
+      <p class="text-sm text-red-600">{{ loadError() }}</p>
+    } @else if (history().length === 0) {
+      <p class="text-sm text-slate-600">Todavía no has registrado predicciones.</p>
+    } @else {
+      <div class="overflow-hidden rounded-lg bg-white shadow">
+        <table class="min-w-full divide-y divide-slate-200">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-slate-500">
+                Partido
+              </th>
+              <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">
+                Mi predicción
+              </th>
+              <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">
+                Resultado real
+              </th>
+              <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">
+                Puntos
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (entry of history(); track entry.matchId) {
+              <tr>
+                <td class="px-4 py-2 text-sm text-slate-800">
+                  {{ entry.homeTeam }} vs {{ entry.awayTeam }}
+                </td>
+                <td class="px-4 py-2 text-right text-sm text-slate-700">
+                  {{ entry.predictedHomeScore }} - {{ entry.predictedAwayScore }}
+                </td>
+                <td class="px-4 py-2 text-right text-sm text-slate-700">
+                  @if (isPending(entry)) {
+                    Pendiente
+                  } @else {
+                    {{ entry.actualHomeScore }} - {{ entry.actualAwayScore }}
+                  }
+                </td>
+                <td class="px-4 py-2 text-right text-sm text-slate-700">
+                  {{ isPending(entry) ? '—' : entry.pointsAwarded }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

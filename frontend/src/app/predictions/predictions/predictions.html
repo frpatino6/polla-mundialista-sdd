@@ -5,6 +5,26 @@
       @if (email) {
         <span class="text-sm text-slate-600">{{ email }}</span>
       }
+      <a
+        routerLink="/leaderboard"
+        class="rounded bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+      >
+        Leaderboard
+      </a>
+      <a
+        routerLink="/history"
+        class="rounded bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+      >
+        Mi Historial
+      </a>
+      @if (isAdmin) {
+        <a
+          routerLink="/admin"
+          class="rounded bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+        >
+          Panel Admin
+        </a>
+      }
       <button
         type="button"
         (click)="logout()"
