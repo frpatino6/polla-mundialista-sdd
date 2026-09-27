@@ -62,7 +62,15 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularDev", policy =>
+        policy.WithOrigins("http://localhost:4200", "http://localhost:4300").AllowAnyHeader().AllowAnyMethod());
+});
 
 var app = builder.Build();
 
@@ -71,6 +79,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("AllowAngularDev");
 
 app.UseAuthentication();
 app.UseAuthorization();

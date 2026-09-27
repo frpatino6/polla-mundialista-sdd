@@ -1,20 +1,10 @@
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using PollaMundialista.Application.Dtos;
 
 namespace PollaMundialista.IntegrationTests;
 
 public class HarnessFlowTests : IClassFixture<CustomWebApplicationFactory>
 {
-    // MatchDto.Group es MatchGroup (enum) y el servidor lo serializa como string vía
-    // ConfigureHttpJsonOptions (Program.cs); GetFromJsonAsync usa opciones "web defaults" por
-    // separado, así que hay que replicar el mismo JsonStringEnumConverter en el cliente de test.
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { new JsonStringEnumConverter() }
-    };
-
     private readonly CustomWebApplicationFactory _factory;
 
     public HarnessFlowTests(CustomWebApplicationFactory factory)
@@ -29,7 +19,7 @@ public class HarnessFlowTests : IClassFixture<CustomWebApplicationFactory>
         var (_, token) = await TestAuthHelper.RegisterAndLoginAsync(client, $"user-{Guid.NewGuid():N}@test.com", "Password123");
         TestAuthHelper.AttachToken(client, token);
 
-        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions);
+        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions);
 
         Assert.NotNull(matches);
         Assert.Equal(12, matches!.Count);
@@ -43,7 +33,7 @@ public class HarnessFlowTests : IClassFixture<CustomWebApplicationFactory>
         var (_, adminToken) = await TestAuthHelper.SeedAdminAndLoginAsync(_factory, client, $"admin-{Guid.NewGuid():N}@test.com", "Password123");
 
         TestAuthHelper.AttachToken(client, token);
-        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions);
+        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions);
         var match = matches!.First(m => m.HomeTeam == "Argentina" && m.AwayTeam == "Brasil");
 
         var predictionResponse = await client.PostAsJsonAsync("/api/predictions",
@@ -68,7 +58,7 @@ public class HarnessFlowTests : IClassFixture<CustomWebApplicationFactory>
         var (userId, token) = await TestAuthHelper.RegisterAndLoginAsync(client, $"user-{Guid.NewGuid():N}@test.com", "Password123");
         TestAuthHelper.AttachToken(client, token);
 
-        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions);
+        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions);
         var match = matches!.First(m => m.HomeTeam == "España" && m.AwayTeam == "Francia");
 
         var predictionResponse = await client.PostAsJsonAsync("/api/predictions",
@@ -89,7 +79,7 @@ public class HarnessFlowTests : IClassFixture<CustomWebApplicationFactory>
         var (_, adminToken) = await TestAuthHelper.SeedAdminAndLoginAsync(_factory, client, $"admin-{Guid.NewGuid():N}@test.com", "Password123");
 
         TestAuthHelper.AttachToken(client, token);
-        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions);
+        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions);
         var match = matches!.First(m => m.HomeTeam == "Argentina" && m.AwayTeam == "España");
 
         await client.PostAsJsonAsync("/api/predictions",

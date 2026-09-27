@@ -1,7 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PollaMundialista.Application.Dtos;
@@ -13,14 +11,6 @@ namespace PollaMundialista.IntegrationTests;
 
 public class PredictionsFlowTests : IClassFixture<CustomWebApplicationFactory>
 {
-    // Ver HarnessFlowTests: MatchDto.Group es MatchGroup (enum) serializado como string por el
-    // servidor; GetFromJsonAsync usa "web defaults" por separado, así que hay que replicar el
-    // mismo JsonStringEnumConverter en el cliente de test.
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { new JsonStringEnumConverter() }
-    };
-
     private readonly CustomWebApplicationFactory _factory;
 
     public PredictionsFlowTests(CustomWebApplicationFactory factory)
@@ -35,7 +25,7 @@ public class PredictionsFlowTests : IClassFixture<CustomWebApplicationFactory>
         var (_, token) = await TestAuthHelper.RegisterAndLoginAsync(client, $"user-{Guid.NewGuid():N}@test.com", "Password123");
         TestAuthHelper.AttachToken(client, token);
 
-        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions);
+        var matches = await client.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions);
         var match = matches!.First();
 
         var firstResponse = await client.PostAsJsonAsync("/api/predictions",
@@ -88,7 +78,7 @@ public class PredictionsFlowTests : IClassFixture<CustomWebApplicationFactory>
         var (_, tokenB) = await TestAuthHelper.RegisterAndLoginAsync(clientB, $"user-{Guid.NewGuid():N}@test.com", "Password123");
         TestAuthHelper.AttachToken(clientB, tokenB);
 
-        var matches = await clientA.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions);
+        var matches = await clientA.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions);
         var matchForA = matches!.First(m => m.HomeTeam == "Argentina" && m.AwayTeam == "Brasil");
         var matchForB = matches!.First(m => m.HomeTeam == "Alemania" && m.AwayTeam == "Portugal");
 

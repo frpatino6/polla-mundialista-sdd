@@ -1,21 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using PollaMundialista.Application.Dtos;
 
 namespace PollaMundialista.IntegrationTests;
 
 public class LeaderboardFlowTests : IClassFixture<CustomWebApplicationFactory>
 {
-    // Ver HarnessFlowTests: MatchDto.Group es MatchGroup (enum) serializado como string por el
-    // servidor; GetFromJsonAsync usa "web defaults" por separado, así que hay que replicar el
-    // mismo JsonStringEnumConverter en el cliente de test.
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { new JsonStringEnumConverter() }
-    };
-
     private readonly CustomWebApplicationFactory _factory;
 
     public LeaderboardFlowTests(CustomWebApplicationFactory factory)
@@ -31,7 +21,7 @@ public class LeaderboardFlowTests : IClassFixture<CustomWebApplicationFactory>
             _factory, adminClient, $"admin-{Guid.NewGuid():N}@test.com", "Password123");
 
         TestAuthHelper.AttachToken(adminClient, adminToken);
-        var matches = await adminClient.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions)
+        var matches = await adminClient.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions)
             ?? throw new InvalidOperationException("Se esperaban partidos sembrados.");
 
         // userExact: 1 marcador exacto -> 3 puntos totales.
@@ -115,7 +105,7 @@ public class LeaderboardFlowTests : IClassFixture<CustomWebApplicationFactory>
             userClient, $"user-{Guid.NewGuid():N}@test.com", "Password123");
         TestAuthHelper.AttachToken(userClient, userToken);
 
-        var matches = await userClient.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions);
+        var matches = await userClient.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions);
         var match = matches!.First(m => m.HomeTeam == "Portugal" && m.AwayTeam == "Países Bajos");
 
         await userClient.PostAsJsonAsync("/api/predictions",

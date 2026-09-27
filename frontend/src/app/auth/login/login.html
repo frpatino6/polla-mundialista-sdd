@@ -1,0 +1,50 @@
+<div class="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+  <div class="w-full max-w-sm rounded-lg bg-white p-8 shadow-md">
+    <h1 class="mb-6 text-2xl font-semibold text-slate-800">Iniciar sesión</h1>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4" novalidate>
+      <div>
+        <label for="email" class="mb-1 block text-sm font-medium text-slate-700">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+        />
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <p class="mt-1 text-xs text-red-600">Ingresa un email válido.</p>
+        }
+      </div>
+
+      <div>
+        <label for="password" class="mb-1 block text-sm font-medium text-slate-700">Contraseña</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+        />
+        @if (form.controls.password.invalid && form.controls.password.touched) {
+          <p class="mt-1 text-xs text-red-600">La contraseña debe tener al menos 6 caracteres.</p>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <p class="text-sm text-red-600">{{ errorMessage() }}</p>
+      }
+
+      <button
+        type="submit"
+        [disabled]="submitting()"
+        class="w-full rounded bg-blue-600 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+      >
+        {{ submitting() ? 'Ingresando...' : 'Ingresar' }}
+      </button>
+    </form>
+
+    <p class="mt-4 text-center text-sm text-slate-600">
+      ¿No tienes cuenta?
+      <a routerLink="/register" class="font-medium text-blue-600 hover:underline">Regístrate</a>
+    </p>
+  </div>
+</div>

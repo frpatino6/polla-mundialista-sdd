@@ -1,6 +1,4 @@
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using PollaMundialista.Api.Controllers;
 using PollaMundialista.Application.Dtos;
 
@@ -8,14 +6,6 @@ namespace PollaMundialista.IntegrationTests;
 
 public class EndToEndFlowTests : IClassFixture<CustomWebApplicationFactory>
 {
-    // Ver HarnessFlowTests: MatchDto.Group es MatchGroup (enum) serializado como string por el
-    // servidor; GetFromJsonAsync usa "web defaults" por separado, así que hay que replicar el
-    // mismo JsonStringEnumConverter en el cliente de test.
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { new JsonStringEnumConverter() }
-    };
-
     private readonly CustomWebApplicationFactory _factory;
 
     public EndToEndFlowTests(CustomWebApplicationFactory factory)
@@ -38,7 +28,7 @@ public class EndToEndFlowTests : IClassFixture<CustomWebApplicationFactory>
         var loginResponse = await userClient.PostAsJsonAsync("/api/auth/login", new LoginRequest(userEmail, password));
         Assert.True(loginResponse.IsSuccessStatusCode);
 
-        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResultDto>();
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResultDto>(TestAuthHelper.JsonOptions);
         Assert.NotNull(loginResult);
         var userId = loginResult!.UserId;
         var userToken = loginResult.Token;
@@ -51,7 +41,7 @@ public class EndToEndFlowTests : IClassFixture<CustomWebApplicationFactory>
         TestAuthHelper.AttachToken(adminClient, adminToken);
 
         // 4. GET /api/matches (usuario) -> deben venir los 12 partidos sembrados.
-        var matches = await userClient.GetFromJsonAsync<List<MatchDto>>("/api/matches", JsonOptions);
+        var matches = await userClient.GetFromJsonAsync<List<MatchDto>>("/api/matches", TestAuthHelper.JsonOptions);
         Assert.NotNull(matches);
         Assert.Equal(12, matches!.Count);
 

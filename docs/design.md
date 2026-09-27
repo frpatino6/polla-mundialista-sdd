@@ -145,7 +145,7 @@ Se adopta el patrón Mediator para desacoplar los `Controllers` de la lógica de
 - Componentes standalone agrupados por feature (`auth/`, `predictions/`, `admin/`, `leaderboard/`), cada uno con sus propios componentes, servicios y rutas (`*.routes.ts`) cargadas vía lazy loading (`loadChildren`/`loadComponent`).
 - `core/`: `AuthInterceptor` (adjunta JWT), `AuthGuard`/`RoleGuard` (protección de rutas Admin), `ApiService` base.
 - Estado: RxJS + servicios con `BehaviorSubject` (sin NgRx — no se justifica por el tamaño del dominio).
-- Estilos: Tailwind CSS (o Angular Material, a definir en Task de scaffolding frontend) para acelerar el panel Admin y el leaderboard.
+- Estilos: Tailwind CSS (decisión cerrada en Tarea #10 — combina mejor con un look propio no genérico de Material) para acelerar el panel Admin y el leaderboard.
 
 ## 6. Modelo de Datos
 
