@@ -2,6 +2,86 @@
 
 ---
 
+## Handoff: 2026-09-27 (4) — Tareas #15/#17/#18 completas: copy refactor, backend+frontend DESPLEGADOS EN RENDER
+
+### Current Task State
+
+**Todo commiteado y pusheado a `main`** (HEAD real: `a1f9147`). Estado de tareas:
+- **Tarea #15** (refactor de copy de interfaz): ya estaba hecha por el usuario con otra herramienta (OpenCode) antes de esta sesión — verificado por mí de forma independiente (existen los `*.copy.ts` en todas las features, 129/129 tests frontend en verde). No hizo falta rehacer nada.
+- **`docs/tasks.md` renumerado de nuevo** (ver nota al inicio del archivo, "Renumeración 2026-09-27 (2)"): **Tarea #16 (Docker Compose) EXCLUIDA/diferida** por decisión explícita del usuario — no bloquea nada. La antigua Tarea #17 (Render) se dividió en **#17 (backend)** y **#18 (frontend, nueva)**. C4 pasó a **#19**, Cierre de documentación a **#20**.
+- **Tarea #17 (Despliegue del Backend en Render.com): COMPLETA y verificada en producción real.**
+- **Tarea #18 (Despliegue del Frontend en Render.com): COMPLETA y verificada en producción real, incluyendo navegación real en Chrome contra el backend real.**
+
+**URLs reales de producción:**
+- Backend: `https://polla-mundialista-sdd.onrender.com` (Render Web Service, `serviceId=srv-dasl5ie0tbcc73ftktg0`)
+- Frontend: `https://polla-mundialista-frontend.onrender.com` (Render Static Site, `serviceId=srv-dasq8at9fdbs73ej0c0g`)
+- Ambos servicios están en el workspace de Render `tea-d3f0282li9vc73dri5bg` ("My Workspace"), conectados a `github.com/frpatino6/polla-mundialista-sdd`, rama `main`, `autoDeploy: yes` — **cualquier push a `main` dispara redeploy automático en ambos servicios**, tenerlo en cuenta antes de pushear algo experimental.
+
+### Key Decisions
+
+- **Base de datos en Render = el Neon real existente** (`polla_mundialista`), NO un Postgres nuevo de Render — decisión explícita del usuario, ya reflejada en `docs/design.md` §12 y `docs/tasks.md` Tarea #17. Evita duplicar/migrar los datos de prueba ya cargados.
+- **El `Dockerfile` del backend vive en la RAÍZ del repo** (no en `backend/`), porque el servicio de Render ya había sido creado apuntando a `dockerfilePath: "./Dockerfile"` / `dockerContext: "."` (repo root) desde el dashboard, y el MCP de Render no expone ninguna herramienta para cambiar esa configuración en un servicio ya existente (solo al crearlo). El `Dockerfile` usa rutas `COPY backend/src/...` porque el contexto de build es la raíz.
+- **`.dockerignore` en la raíz NO debe excluir `docs/`**: `MatchSeedLoader.ResolveFixturePath()` (backend/src/PollaMundialista.Infrastructure/Persistence/Seed/MatchSeedLoader.cs) busca `docs/fixtures/matches-seed.json` subiendo desde `AppContext.BaseDirectory` — EF Core necesita ese archivo para construir el modelo (`HasData`) en CADA arranque, incluso sin migraciones pendientes. El `Dockerfile` ahora copia explícitamente ese archivo a la imagen (`COPY docs/fixtures/matches-seed.json docs/fixtures/matches-seed.json` en el stage final).
+- **CORS ahora es configurable vía `Cors:AllowedOrigins`** (`Program.cs`, `appsettings.json`/`appsettings.Development.json`) en vez de estar hardcodeado a `localhost` — se lee como array desde configuración, y en Render se puebla vía `Cors__AllowedOrigins__0`/`__1` (convención estándar de env vars de ASP.NET Core para arrays). Actualmente configurado con la URL del frontend real y la del propio backend.
+- **Frontend como Render Static Site** (no Docker/Nginx) — más simple, Render solo corre `cd frontend && npm ci && npx ng build` y sirve `frontend/dist/frontend/browser` (ese es el output real del builder `@angular/build:application` sin `outputPath` custom en `angular.json` — el árbol final queda bajo un subdirectorio `browser/`, no directo en `dist/frontend/`).
+- **`environment.ts` (producción) ahora apunta a la URL real del backend** (`https://polla-mundialista-sdd.onrender.com`) — antes tenía `localhost:5282` hardcodeado, un bug real que habría roto el frontend en producción silenciosamente.
+- **SPA fallback routing en el Static Site NO se resuelve con un archivo `_redirects`** (estilo Netlify) — Render NO lo soporta pese a que el archivo se sirve bien como asset estático. Hay que crear una regla de rewrite real vía la API REST de Render: `POST https://api.render.com/v1/services/{serviceId}/routes` con body `{"type":"rewrite","source":"/*","destination":"/index.html"}` (headers `Authorization: Bearer $RENDER_API_KEY`, `Content-Type: application/json`). El MCP de Render no expone esta operación como tool, así que se usó `curl` directo con la env var `RENDER_API_KEY` (ver más abajo). El archivo `frontend/public/_redirects` se dejó en el repo de todos modos (no hace daño, documenta la intención) pero la regla real vive solo en la config de Render (no en el repo) — si se recrea el Static Site desde cero, hay que volver a crear esta regla.
+- **Servidor MCP de Render agregado a `.mcp.json`** (`"render": {"type": "http", "url": "https://mcp.render.com/mcp", "headers": {"Authorization": "Bearer ${RENDER_API_KEY}"}}`) — el OAuth automático de Claude Code NO funciona con Render (su auth server no soporta Dynamic Client Registration, falla con "Incompatible auth server"). Se usa autenticación por API Key en su lugar. La key real vive SOLO en `.claude/settings.local.json` → `env.RENDER_API_KEY` (archivo local, gitignored — se agregó `.claude/settings.local.json` al `.gitignore` en esta sesión porque NO estaba protegido antes). Esa misma env var también quedó disponible para `Bash` directamente, y se usó para el `curl` de la regla de rewrite de arriba.
+- **INCIDENTE RESUELTO — git rompía con "Operation not permitted" en `.git/config`**: causa raíz confirmada — el repo vive bajo `~/Documents/Apps/BIZAGI`, carpeta sincronizada por iCloud Drive ("Escritorio y Documentos"), gestionada por el File Provider `com.apple.CloudDocs.iCloudDriveFileProvider` (confirmado con `xattr -l .git` → `com.apple.file-provider-domain-id`). Los bloqueos de archivo (`flock`) que usa git para leer/escribir el `.git` interno son interceptados y rechazados por el proveedor de archivos cuando el proceso invocante no tiene sesión de UI interactiva — lecturas simples (`cat`, `python open()`, herramienta `Read`) no se ven afectadas porque no usan `flock`. **Fix aplicado (con aprobación explícita del usuario, porque el clasificador de auto-mode bloqueó el primer intento por "Irreversible Local Destruction")**: se reubicó SOLO el directorio `.git` (no los archivos de trabajo) a `~/.git-dirs/polla-mundialista-sdd.git`, dejando un archivo `.git` de una línea en `~/Documents/Apps/BIZAGI/.git` con `gitdir: /Users/fernando/.git-dirs/polla-mundialista-sdd.git` (mecanismo estándar de git, el mismo que usa `git worktree`). Desde ahí `git status`/`commit`/`push` funcionan normal para mí y para el usuario. **Si se clona el repo de nuevo en esta máquina bajo `~/Documents`, el problema puede reaparecer** — aplicar la misma reubicación si pasa.
+
+### Modified/Created Files (TODO commiteado, ver hashes en Model Summary)
+
+- `docs/tasks.md` — Tarea #16 marcada excluida; Tarea #17 dividida en #17 (backend)/#18 (frontend); C4→#19, Cierre→#20; decisión de Neon documentada.
+- `docs/design.md` §12 — actualizado: 2 servicios en Render (no 3), backend usa Neon real.
+- `Dockerfile` (raíz, nuevo) + `.dockerignore` (raíz, nuevo) — build multi-stage .NET 10, incluye `docs/fixtures/matches-seed.json`.
+- `backend/src/PollaMundialista.Api/Program.cs` — CORS configurable vía `Cors:AllowedOrigins`.
+- `backend/src/PollaMundialista.Api/appsettings.json` (+`Cors.AllowedOrigins: []`) y `appsettings.Development.json` (+`Cors.AllowedOrigins: [localhost:4200, localhost:4300]`).
+- `frontend/src/environments/environment.ts` — `apiBaseUrl` apunta al backend real de Render.
+- `frontend/public/_redirects` — documental, la regla real de SPA routing vive en Render (ver Key Decisions).
+- `.mcp.json` — servidor `render` agregado (autenticación por API key vía `${RENDER_API_KEY}`).
+- `.claude/settings.local.json` — `env.RENDER_API_KEY` (local, gitignored), `enabledMcpjsonServers: [neon, render]`.
+- `.gitignore` — se agregó `.claude/settings.local.json` (no estaba protegido, riesgo real detectado y corregido en esta sesión).
+- `~/.git-dirs/polla-mundialista-sdd.git` — el `.git` real del repo (movido fuera de iCloud, ver Key Decisions). `~/Documents/Apps/BIZAGI/.git` ahora es un archivo de texto, no una carpeta.
+
+### Blockers / Open Questions
+
+- **Nada bloqueante.** Backend y frontend funcionando en producción, verificado end-to-end (login real vía Chrome, JWT válido, rol Admin, datos reales de Neon, panel de predicciones cargando los 12 partidos).
+- **Riesgo latente de UX**: ambos servicios están en el plan `free` de Render — se "duermen" tras inactividad y tardan ~30-60s (a veces más, se observó hasta ~14 min en un caso con un despliegue mal configurado) en responder al primer request tras dormir. No es un bug, es el comportamiento esperado del plan gratis; documentarlo si se hace una demo en vivo (visitar la URL un par de minutos antes).
+- **La colección de Postman NO se actualizó todavía con las URLs de producción** — sigue apuntando a `{{baseUrl}} = http://localhost:5282`. Si se quiere probar contra producción vía Postman, hay que agregar una variable de entorno/colección nueva para la URL de Render (no se hizo en esta sesión, no era parte del alcance de #17/#18).
+
+### Next Steps
+
+1. **Tarea #19 — Diagrama de Arquitectura C4** (`docs/tasks.md`): exportar las vistas Mermaid de `design.md` §2 a `docs/architecture/`, reflejando el sistema REALMENTE desplegado (2 servicios Render + Neon, no 3 servicios ni Docker Compose local).
+2. **Tarea #20 — Cierre de Documentación**: `AI_LOG.md` (manual, no tocar salvo pedido explícito), `README.md` con instrucciones de arranque local Y enlaces de despliegue reales (backend/frontend URLs de arriba), `.claude/agents/` documentados.
+3. Opcional/no bloqueante: sincronizar Postman con URLs de producción si el usuario lo pide.
+4. Opcional/no bloqueante: si el usuario quiere evitar el "cold start" del plan free, considerar upgrade de plan en Render (fuera del alcance de la prueba técnica, no asumir que hace falta).
+
+### Critical Context
+
+- Todo lo de las entradas anteriores de este log sigue aplicando (releer si hace falta contexto de Tareas #1-14).
+- **`serviceId` de Render para referencia rápida**: backend `srv-dasl5ie0tbcc73ftktg0`, frontend `srv-dasq8at9fdbs73ej0c0g`, workspace `tea-d3f0282li9vc73dri5bg`.
+- **Cualquier cambio a `Program.cs`/CORS/Dockerfile que se pushee a `main` redeploya automáticamente ambos servicios** — no hace falta (ni hay forma vía MCP) de "aprobar" el deploy, es automático apenas Render detecta el nuevo commit.
+- El MCP de Render (`mcp__render__*`) permite: crear web services/static sites/Postgres/cron/key-value, listar/ver detalles de servicios, actualizar variables de entorno, disparar deploys, leer logs/eventos/métricas, y consultar Postgres. NO permite: cambiar `dockerfilePath`/`rootDir` de un servicio ya creado, ni crear reglas de redirect/rewrite (para eso hace falta la API REST directa con `RENDER_API_KEY`, ver Key Decisions).
+- Si en una sesión futura `git status` vuelve a fallar con `Operation not permitted`, es casi seguro el mismo problema de iCloud — revisar si `~/Documents/Apps/BIZAGI/.git` sigue siendo el archivo puntero a `~/.git-dirs/polla-mundialista-sdd.git` (podría haberse "reparado" solo si alguna herramienta lo recreó como carpeta real).
+
+### Model Summary
+
+- Tareas #15 (verificada, ya hecha por el usuario con OpenCode), #17 (backend en Render) y #18 (frontend en Render) completas y COMMITEADAS — HEAD real `a1f9147`.
+- `docs/tasks.md` renumerado otra vez: #16 Docker Compose EXCLUIDA, #17 backend Render, #18 frontend Render (nueva), #19 C4, #20 Cierre.
+- Decisión clave: Render usa el Neon real existente (no Postgres nuevo de Render) — ya reflejado en `design.md`/`tasks.md`.
+- Backend desplegado y verificado: `https://polla-mundialista-sdd.onrender.com` — login real devuelve JWT válido, `/api/matches` devuelve los 12 partidos reales.
+- Frontend desplegado y verificado en Chrome real: `https://polla-mundialista-frontend.onrender.com` — login end-to-end funciona, navega a `/predictions` con datos reales, navbar muestra "Panel Admin" (rol Admin confirmado).
+- Bugs reales encontrados y arreglados durante el despliegue (ninguno detectado por los tests automatizados, todos por verificación manual real): (1) `Dockerfile` faltante → luego mal ubicado (raíz vs backend/) según cómo Render ya tenía configurado el servicio; (2) `.dockerignore` excluía `docs/` rompiendo el seed de EF Core en cada arranque; (3) CORS hardcodeado a localhost; (4) `environment.ts` de producción apuntaba a `localhost:5282`; (5) `_redirects` estilo Netlify no funciona en Render, hubo que usar la API REST directa para la regla de rewrite SPA.
+- Incidente de infraestructura resuelto con aprobación explícita del usuario: git fallaba por iCloud Drive interceptando `flock` en `~/Documents` — se reubicó el `.git` real a `~/.git-dirs/` con un puntero `gitdir:`, sin mover ni tocar los archivos de trabajo.
+- MCP de Render configurado con autenticación por API key (`.mcp.json` + `.claude/settings.local.json`, esta última ahora correctamente gitignored — no lo estaba antes, riesgo real detectado y corregido).
+- Próximo paso natural: Tarea #19 (diagrama C4 reflejando el despliegue real) y Tarea #20 (cierre de documentación con README + URLs reales).
+
+### Handoff Context (paste into next session)
+
+Retomas "Polla Mundialista". Backend y frontend están DESPLEGADOS EN PRODUCCIÓN REAL en Render.com y verificados end-to-end (backend: `https://polla-mundialista-sdd.onrender.com`, frontend: `https://polla-mundialista-frontend.onrender.com`, login real probado en Chrome). Todo está commiteado y pusheado a `main` (HEAD `a1f9147`). `docs/tasks.md` se renumeró otra vez: #16 (Docker Compose) quedó EXCLUIDA por decisión del usuario, #17/#18 son el despliegue backend/frontend (ya hechas), #19 es el diagrama C4 (próximo paso natural), #20 es el cierre de documentación. Antes de nada: (1) relee `docs/tasks.md` completo; (2) corre `dotnet test backend/PollaMundialista.sln` (espera 108/108) y `cd frontend && npx ng test --watch=false` (espera 129/129). Nota importante de infraestructura: el `.git` real de este repo vive en `~/.git-dirs/polla-mundialista-sdd.git` (no en `~/Documents/Apps/BIZAGI/.git`, que es solo un puntero `gitdir:`) — esto se hizo porque iCloud Drive rompía las operaciones de git en la ubicación original; si `git status` vuelve a fallar con "Operation not permitted", es ese mismo problema, revisar el puntero. El MCP de Render (`mcp__render__*`) ya está configurado y autenticado vía API key (`.mcp.json` + `.claude/settings.local.json`, esta última local/gitignored) — úsalo para cualquier operación de Render (`serviceId` backend: `srv-dasl5ie0tbcc73ftktg0`, frontend: `srv-dasq8at9fdbs73ej0c0g`, workspace: `tea-d3f0282li9vc73dri5bg`); para operaciones que el MCP no expone (rewrite rules, cambiar dockerfilePath de un servicio existente) usa `curl` directo a `https://api.render.com/v1/...` con `Authorization: Bearer $RENDER_API_KEY` (la env var ya está disponible en Bash). Sigue el patrón operativo: código nuevo se delega a un subagente con instrucción EXPLÍCITA de no delegar más (regla crítica de la sesión anterior, ver memoria `feedback_no_nested_delegation.md`), y tú verificas todo de forma independiente después. Usa CodeGraph antes de grep/Read. No toques `AI_LOG.md` salvo pedido explícito. Recuerda: cualquier push a `main` redeploya automáticamente AMBOS servicios de Render — piensa antes de pushear algo experimental.
+
+---
+
 ## Handoff: 2026-09-27 (3) — Tarea #14 (Recuperación de contraseña) completa, backend+frontend+Postman, SIN COMMITEAR
 
 ### Current Task State
