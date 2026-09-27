@@ -172,6 +172,16 @@ El catálogo incluye títulos, instrucciones, botones, estados de carga/vacío, 
 
 Esta organización separa contenido de estructura sin introducir ahora una dependencia ni simular configuración dinámica. Si el producto requiere mantener varias locales con builds por locale, se adopta la localización nativa de Angular (`@angular/localize`) con mensajes marcados y catálogos de traducción. Si además se necesita cambiar de idioma dentro de una sesión en ejecución, se evalúa una solución con soporte explícito para traducción runtime; no se amplía el catálogo TypeScript para modelar idiomas.
 
+**Límite del copy compartido, verificado y no asumido.** Aplicada la sección sobre las 9 pantallas, 18 strings estaban definidos en más de una feature. Se centralizaron los 14 que son reutilización real en dos módulos chicos de `core/copy/` — `AUTH_COPY` (marca, campo de email, toggle de contraseña, CTA de inicio de sesión, prompt de "¿Recordaste tu contraseña?") y `MATCHES_COPY` (`vs`, estado `Pendiente`, estados de carga/error de la lista de partidos, `Guardando…`) —, manteniendo **idénticas las rutas de clave de cada módulo de feature** para que templates y pruebas no dependan del origen del valor. Los 4 restantes quedaron duplicados **a propósito**, con el motivo registrado:
+
+| String duplicado | Por qué no se centraliza |
+|---|---|
+| `Leaderboard`, `Mi Historial` | Son la etiqueta del navbar y el título de la página: pueden divergir legitimamente sin que eso sea un bug |
+| `Puntos` | Columna de historial vs. columna de leaderboard: idem (`Puntos` vs `Puntos totales`) |
+| `La contraseña debe tener al menos 6 caracteres.` | Está atada a la regla de validación, no al copy — `reset-password` exige 8. La frase debe generarla la regla de cada pantalla, no un catálogo de textos |
+
+`core/copy/copy.spec.ts` convierte esa decisión en un contrato verificado: recorre los 9 módulos de feature, junta los valores de tipo string (omitiendo las funciones de dominio), y falla si algún string aparece en más de una feature sin estar en un módulo compartido o en la allowlist `DELIBERATELY_DUPLICATED_COPY` — y también falla si alguna entrada de esa allowlist deja de estar duplicada de verdad, para que no se pudra en silencio. Un duplicado nuevo no puede entrar al código sin una decisión explícita sobre si se centraliza o se acepta.
+
 ## 6. Modelo de Datos
 
 ```mermaid

@@ -1,5 +1,7 @@
+import { AUTH_COPY } from '../../core/copy/auth.copy';
+
 export const RESET_PASSWORD_COPY = {
-  brand: 'Polla Mundialista',
+  brand: AUTH_COPY.brand,
   title: 'Restablece tu contraseña',
   subtitle: 'Ingresa el token que recibiste y elige tu nueva contraseña.',
   fields: {
@@ -14,9 +16,12 @@ export const RESET_PASSWORD_COPY = {
   actions: {
     submit: 'Restablecer contraseña',
     submitting: 'Restableciendo…',
-    showPassword: 'Mostrar contraseña',
-    hidePassword: 'Ocultar contraseña',
+    showPassword: AUTH_COPY.passwordToggle.show,
+    hidePassword: AUTH_COPY.passwordToggle.hide,
   },
   success: { cta: 'Ir a iniciar sesión' },
-  rememberedPassword: { prompt: '¿Recordaste tu contraseña?', cta: 'Inicia sesión' },
+  rememberedPassword: {
+    prompt: AUTH_COPY.rememberedPassword.prompt,
+    cta: AUTH_COPY.signIn.cta,
+  },
 } as const;

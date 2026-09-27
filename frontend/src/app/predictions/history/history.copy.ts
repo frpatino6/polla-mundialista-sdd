@@ -1,3 +1,5 @@
+import { MATCHES_COPY } from '../../core/copy/matches.copy';
+
 export const HISTORY_COPY = {
   title: 'Mi Historial',
   subtitle:
@@ -16,6 +18,6 @@ export const HISTORY_COPY = {
       points: 'Puntos',
     },
   },
-  match: { vs: 'vs' },
-  pending: { result: 'Pendiente', points: '—' },
+  match: { vs: MATCHES_COPY.vs },
+  pending: { result: MATCHES_COPY.status.pending, points: '—' },
 } as const;
