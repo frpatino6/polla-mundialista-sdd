@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'http://localhost:5282',
+  apiBaseUrl: 'https://polla-mundialista-sdd.onrender.com',
 };
