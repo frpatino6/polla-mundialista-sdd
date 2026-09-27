@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { RESET_PASSWORD_COPY } from './reset-password.copy';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink],
@@ -13,6 +14,8 @@ export class ResetPassword {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
+
+  readonly copy = RESET_PASSWORD_COPY;
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -58,7 +61,7 @@ export class ResetPassword {
         // El backend devuelve 400 con el mensaje de dominio exacto (token inválido,
         // expirado o ya consumido, docs/design.md §7.2): se muestra tal cual, sin
         // reinterpretarlo aquí.
-        this.errorMessage.set(err?.error?.message ?? 'No se pudo restablecer la contraseña.');
+        this.errorMessage.set(err?.error?.message ?? RESET_PASSWORD_COPY.errors.fallback);
       },
     });
   }

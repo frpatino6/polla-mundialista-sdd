@@ -16,6 +16,7 @@ import {
   teamFlag,
   teamInitials,
 } from '../../core/models/predictions.models';
+import { ADMIN_MATCHES_COPY } from './admin-matches.copy';
 
 type ResultFormGroup = FormGroup<{
   homeScore: FormControl<number>;
@@ -55,6 +56,7 @@ export class AdminMatches implements OnInit {
   readonly groupLabels = MATCH_GROUP_LABELS;
   readonly teamFlag = teamFlag;
   readonly teamInitials = teamInitials;
+  readonly copy = ADMIN_MATCHES_COPY;
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
 
@@ -73,6 +75,15 @@ export class AdminMatches implements OnInit {
     return match.homeScore !== null && match.awayScore !== null;
   }
 
+  /**
+   * Rótulo del badge de un partido ya jugado. `hasResult` ya garantiza que ambos
+   * marcadores existen, pero el template no puede estrechar el tipo: se resuelve
+   * con el mismo `?? 0` que usa el resto de la pantalla.
+   */
+  finishedStatus(match: MatchDto): string {
+    return ADMIN_MATCHES_COPY.match.status.finished(match.homeScore ?? 0, match.awayScore ?? 0);
+  }
+
   submit(vm: AdminMatchViewModel): void {
     if (vm.form.invalid) {
       vm.form.markAllAsTouched();
@@ -89,7 +100,7 @@ export class AdminMatches implements OnInit {
     this.adminService.submitMatchResult(vm.match.id, homeScore, awayScore).subscribe({
       next: (updatedMatch) => {
         vm.saving = false;
-        vm.savedMessage = 'Resultado guardado. Puntos recalculados.';
+        vm.savedMessage = ADMIN_MATCHES_COPY.feedback.saved;
         vm.match = updatedMatch;
         vm.form.setValue({
           homeScore: updatedMatch.homeScore ?? 0,
@@ -99,7 +110,7 @@ export class AdminMatches implements OnInit {
       },
       error: (err) => {
         vm.saving = false;
-        vm.errorMessage = err?.error?.message ?? 'No se pudo guardar el resultado.';
+        vm.errorMessage = err?.error?.message ?? ADMIN_MATCHES_COPY.feedback.saveError;
         this.notifyChanged();
       },
     });
@@ -121,7 +132,7 @@ export class AdminMatches implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.loadError.set('No se pudieron cargar los partidos. Intenta nuevamente más tarde.');
+        this.loadError.set(ADMIN_MATCHES_COPY.states.loadError);
       },
     });
   }

@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { Navbar } from './navbar';
+import { NAVBAR_COPY } from './navbar.copy';
 
 describe('Navbar', () => {
   type Role = 'User' | 'Admin' | null;
@@ -34,7 +35,9 @@ describe('Navbar', () => {
   it('muestra el enlace al Panel Admin para una sesión con rol Admin', () => {
     const root = host(setup('Admin'));
 
-    expect(root.querySelector('a[routerLink="/admin"]')?.textContent?.trim()).toBe('Panel Admin');
+    expect(root.querySelector('a[routerLink="/admin"]')?.textContent?.trim()).toBe(
+      NAVBAR_COPY.links.admin,
+    );
   });
 
   it('oculta el enlace al Panel Admin para una sesión con rol User', () => {
@@ -49,10 +52,10 @@ describe('Navbar', () => {
       const root = host(setup(role));
 
       expect(root.querySelector('a[routerLink="/leaderboard"]')?.textContent?.trim()).toBe(
-        'Leaderboard',
+        NAVBAR_COPY.links.leaderboard,
       );
       expect(root.querySelector('a[routerLink="/history"]')?.textContent?.trim()).toBe(
-        'Mi Historial',
+        NAVBAR_COPY.links.history,
       );
     }
   });
@@ -84,7 +87,7 @@ describe('Navbar', () => {
     const root = host(setup('Admin'));
 
     const nav = root.querySelector('nav');
-    expect(nav?.getAttribute('aria-label')).toBe('Principal');
+    expect(nav?.getAttribute('aria-label')).toBe(NAVBAR_COPY.nav.ariaLabel);
     expect(nav?.querySelectorAll('a').length).toBe(3);
   });
 
@@ -112,5 +115,28 @@ describe('Navbar', () => {
 
     const link = root.querySelector('a[routerLink="/leaderboard"]') as HTMLAnchorElement;
     expect(link.className).toContain('focus-visible:ring-2');
+  });
+
+  it('renderiza los textos de NAVBAR_COPY manteniendo las etiquetas accesibles del navbar', () => {
+    const root = host(setup('Admin'));
+
+    const brand = root.querySelector('a[routerLink="/predictions"]') as HTMLAnchorElement;
+    const [eyebrow, name] = brand.querySelectorAll('span span');
+    expect(eyebrow.textContent?.trim()).toBe(NAVBAR_COPY.brand.eyebrow);
+    expect(name.textContent?.trim()).toBe(NAVBAR_COPY.brand.name);
+
+    // La etiqueta del nav sigue siendo la del copy y envuelve a los tres links.
+    const nav = root.querySelector('nav') as HTMLElement;
+    expect(nav.getAttribute('aria-label')).toBe(NAVBAR_COPY.nav.ariaLabel);
+    expect([...nav.querySelectorAll('a')].map((link) => link.textContent?.trim())).toStrictEqual([
+      NAVBAR_COPY.links.leaderboard,
+      NAVBAR_COPY.links.history,
+      NAVBAR_COPY.links.admin,
+    ]);
+
+    const logout = root.querySelector('button') as HTMLButtonElement;
+    expect(logout.textContent?.trim()).toBe(NAVBAR_COPY.actions.logout);
+    // El ícono de logout sigue oculto para lectores de pantalla: el texto del botón es su nombre accesible.
+    expect(logout.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
   });
 });

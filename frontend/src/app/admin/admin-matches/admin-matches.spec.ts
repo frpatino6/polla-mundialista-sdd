@@ -4,8 +4,13 @@ import { of, throwError, Subject } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { MatchesService } from '../../core/services/matches.service';
-import { MatchDto } from '../../core/models/predictions.models';
+import { MATCH_GROUP_LABELS, MatchDto, TEAM_FLAGS } from '../../core/models/predictions.models';
 import { AdminMatches } from './admin-matches';
+import { ADMIN_MATCHES_COPY } from './admin-matches.copy';
+
+// Mensaje tal como lo devuelve la API al rechazar un marcador: es copy del
+// servidor, no de la interfaz, por eso vive acá y no en ADMIN_MATCHES_COPY.
+const serverError = 'Marcador inválido.';
 
 function createMatch(overrides: Partial<MatchDto> = {}): MatchDto {
   return {
@@ -69,9 +74,7 @@ describe('AdminMatches', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.loading()).toBe(false);
-    expect(fixture.componentInstance.loadError()).toBe(
-      'No se pudieron cargar los partidos. Intenta nuevamente más tarde.',
-    );
+    expect(fixture.componentInstance.loadError()).toBe(ADMIN_MATCHES_COPY.states.loadError);
   });
 
   it('submits the form values and shows a success message, updating that row in place', () => {
@@ -87,7 +90,7 @@ describe('AdminMatches', () => {
     fixture.componentInstance.submit(vm);
 
     expect(adminServiceMock.submitMatchResult).toHaveBeenCalledWith('match-1', 2, 1);
-    expect(vm.savedMessage).toBe('Resultado guardado. Puntos recalculados.');
+    expect(vm.savedMessage).toBe(ADMIN_MATCHES_COPY.feedback.saved);
     expect(vm.match.homeScore).toBe(2);
     expect(vm.match.awayScore).toBe(1);
     expect(fixture.componentInstance.matches()[0].match.homeScore).toBe(2);
@@ -101,12 +104,12 @@ describe('AdminMatches', () => {
     vm.form.setValue({ homeScore: 2, awayScore: 1 });
 
     adminServiceMock.submitMatchResult.mockReturnValue(
-      throwError(() => ({ status: 400, error: { message: 'Marcador inválido.' } })),
+      throwError(() => ({ status: 400, error: { message: serverError } })),
     );
 
     fixture.componentInstance.submit(vm);
 
-    expect(vm.errorMessage).toBe('Marcador inválido.');
+    expect(vm.errorMessage).toBe(serverError);
     expect(vm.saving).toBe(false);
     expect(vm.savedMessage).toBeNull();
   });
@@ -139,7 +142,7 @@ describe('AdminMatches', () => {
     fixture.detectChanges();
 
     const feedback = root.querySelector('.saved-feedback');
-    expect(feedback?.textContent).toContain('Resultado guardado. Puntos recalculados.');
+    expect(feedback?.textContent).toContain(ADMIN_MATCHES_COPY.feedback.saved);
     expect(feedback?.querySelector('svg')).not.toBeNull();
   });
 
@@ -157,17 +160,19 @@ describe('AdminMatches', () => {
     const root = fixture.nativeElement as HTMLElement;
 
     const card = root.querySelector('article')!;
-    expect(card.textContent).toContain('Grupo A');
+    expect(card.textContent).toContain(MATCH_GROUP_LABELS.A);
     expect(card.textContent).toContain('Colombia');
     expect(card.textContent).toContain('Brasil');
     // 'Brasil' está en TEAM_FLAGS, 'Colombia' cae al badge de iniciales.
-    expect(card.querySelector('[data-team-flag]')?.textContent?.trim()).toBe('🇧🇷');
+    expect(card.querySelector('[data-team-flag]')?.textContent?.trim()).toBe(TEAM_FLAGS['brasil']);
     expect(card.querySelector('[data-team-initials]')?.textContent?.trim()).toBe('CO');
-    expect(card.querySelector('[data-status="pending"]')?.textContent).toContain('Pendiente');
+    expect(card.querySelector('[data-status="pending"]')?.textContent).toContain(
+      ADMIN_MATCHES_COPY.match.status.pending,
+    );
     // Labels visibles del formulario, no solo sr-only.
     expect([...card.querySelectorAll('label')].map((label) => label.textContent?.trim())).toEqual([
-      'Local',
-      'Visitante',
+      ADMIN_MATCHES_COPY.fields.homeScore.label,
+      ADMIN_MATCHES_COPY.fields.awayScore.label,
     ]);
   });
 
@@ -176,7 +181,7 @@ describe('AdminMatches', () => {
 
     const card = root.querySelector('article')!;
     expect(card.querySelector('[data-status="finished"]')?.textContent).toContain(
-      'Finalizado: 2 - 1',
+      ADMIN_MATCHES_COPY.match.status.finished(2, 1),
     );
     expect(card.querySelector('[data-status="pending"]')).toBeNull();
   });
@@ -192,7 +197,7 @@ describe('AdminMatches', () => {
     const emptyState = root.querySelector('p.rounded-2xl.border-dashed');
     expect(emptyState).not.toBeNull();
     expect(emptyState!.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      'Todavía no hay partidos cargados. Cargá los partidos desde la base de datos o contactá al administrador.',
+      ADMIN_MATCHES_COPY.states.empty,
     );
   });
 
@@ -209,5 +214,72 @@ describe('AdminMatches', () => {
     expect(
       [...card.querySelectorAll('[data-team-initials]')].map((badge) => badge.textContent?.trim()),
     ).toEqual(['?', '?']);
+  });
+
+  it('renderiza los textos del ADMIN_MATCHES_COPY manteniendo cada label ligado a su input', () => {
+    const fixture = setup([createMatch({ group: 'B' })]);
+    const root = fixture.nativeElement as HTMLElement;
+    const card = root.querySelector('article')!;
+
+    const heading = root.querySelector('h1') as HTMLElement;
+    expect(heading.textContent?.trim()).toBe(ADMIN_MATCHES_COPY.title);
+    expect(
+      (heading.nextElementSibling as HTMLElement).textContent?.replace(/\s+/g, ' ').trim(),
+    ).toBe(ADMIN_MATCHES_COPY.subtitle);
+
+    // El grupo sigue viniendo de la constante compartida, no del copy de la pantalla.
+    expect(card.textContent).toContain(MATCH_GROUP_LABELS.B);
+    expect(card.querySelector('[data-status="pending"]')?.textContent?.trim()).toBe(
+      ADMIN_MATCHES_COPY.match.status.pending,
+    );
+    expect(
+      (card.querySelector('.uppercase[aria-hidden="true"]') as HTMLElement).textContent?.trim(),
+    ).toBe(ADMIN_MATCHES_COPY.match.vs);
+    expect((card.querySelector('button[type="submit"]') as HTMLElement).textContent?.trim()).toBe(
+      ADMIN_MATCHES_COPY.actions.save,
+    );
+
+    const labels = [...card.querySelectorAll('label')] as HTMLLabelElement[];
+    expect(labels.map((label) => label.textContent?.trim())).toEqual([
+      ADMIN_MATCHES_COPY.fields.homeScore.label,
+      ADMIN_MATCHES_COPY.fields.awayScore.label,
+    ]);
+    const inputs = [...card.querySelectorAll('input[type="number"]')] as HTMLInputElement[];
+    expect(inputs).toHaveLength(2);
+    expect(labels[0].htmlFor).toBe(inputs[0].id);
+    expect(labels[1].htmlFor).toBe(inputs[1].id);
+    expect(inputs[0].id).toBe(
+      fixture.componentInstance.scoreId(fixture.componentInstance.matches()[0], 'home'),
+    );
+    expect(inputs[1].id).toBe(
+      fixture.componentInstance.scoreId(fixture.componentInstance.matches()[0], 'away'),
+    );
+  });
+
+  it('renderiza el estado de guardado y el mensaje de éxito desde el copy', () => {
+    const match = createMatch();
+    const fixture = setup([match]);
+    const root = fixture.nativeElement as HTMLElement;
+    const vm = fixture.componentInstance.matches()[0];
+    const response$ = new Subject<MatchDto>();
+    adminServiceMock.submitMatchResult.mockReturnValue(response$);
+
+    vm.form.setValue({ homeScore: 2, awayScore: 1 });
+    fixture.componentInstance.submit(vm);
+    fixture.detectChanges();
+
+    const button = root.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(button.textContent?.trim()).toBe(ADMIN_MATCHES_COPY.actions.saving);
+    expect(root.querySelector('.saved-feedback')).toBeNull();
+
+    response$.next({ ...match, homeScore: 2, awayScore: 1 });
+    fixture.detectChanges();
+
+    expect(root.querySelector('.saved-feedback')?.textContent?.trim()).toBe(
+      ADMIN_MATCHES_COPY.feedback.saved,
+    );
+    expect(root.querySelector('button[type="submit"]')?.textContent?.trim()).toBe(
+      ADMIN_MATCHES_COPY.actions.save,
+    );
   });
 });

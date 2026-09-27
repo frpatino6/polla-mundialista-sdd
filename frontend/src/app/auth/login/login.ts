@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { LOGIN_COPY } from './login.copy';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink],
@@ -13,6 +14,8 @@ export class Login {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+
+  readonly copy = LOGIN_COPY;
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -57,7 +60,7 @@ export class Login {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.errorMessage.set(err?.error?.message ?? 'Credenciales inválidas.');
+        this.errorMessage.set(err?.error?.message ?? LOGIN_COPY.errors.fallback);
       },
     });
   }

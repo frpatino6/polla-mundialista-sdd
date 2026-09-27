@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { REGISTER_COPY } from './register.copy';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink],
@@ -13,6 +14,8 @@ export class Register {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+
+  readonly copy = REGISTER_COPY;
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -46,7 +49,7 @@ export class Register {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.errorMessage.set(err?.error?.message ?? 'No se pudo completar el registro.');
+        this.errorMessage.set(err?.error?.message ?? REGISTER_COPY.errors.fallback);
       },
     });
   }

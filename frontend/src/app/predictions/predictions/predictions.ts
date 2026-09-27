@@ -29,6 +29,7 @@ import {
   teamFlag,
   teamInitials,
 } from '../../core/models/predictions.models';
+import { PREDICTIONS_COPY } from './predictions.copy';
 
 /** Cada cuántos ms se reevalúa si un partido ya arrancó (bloqueo por kickoff). */
 const LOCK_CHECK_INTERVAL_MS = 30000;
@@ -82,6 +83,7 @@ export class Predictions implements OnInit, OnDestroy {
 
   /** Enlace al Panel Admin visible solo para el rol Admin (Tarea #12). */
   readonly isAdmin = this.authService.role === 'Admin';
+  readonly copy = PREDICTIONS_COPY;
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
 
@@ -176,7 +178,7 @@ export class Predictions implements OnInit, OnDestroy {
     return vm.existingPrediction?.pointsAwarded ?? 0;
   }
 
-  hasResult(match: MatchDto): boolean {
+  hasResult(match: MatchDto): match is MatchDto & { homeScore: number; awayScore: number } {
     return match.homeScore !== null && match.awayScore !== null;
   }
 
@@ -196,7 +198,7 @@ export class Predictions implements OnInit, OnDestroy {
     this.predictionsService.registerPrediction(vm.match.id, homeScore, awayScore).subscribe({
       next: (dto) => {
         vm.saving = false;
-        vm.savedMessage = 'Predicción guardada.';
+        vm.savedMessage = PREDICTIONS_COPY.feedback.saved;
         vm.existingPrediction = {
           matchId: vm.match.id,
           homeTeam: vm.match.homeTeam,
@@ -216,10 +218,9 @@ export class Predictions implements OnInit, OnDestroy {
           // del servidor: el partido ya inició. Reflejamos el bloqueo sin romper la pantalla.
           vm.locked = true;
           vm.form.disable();
-          vm.errorMessage =
-            err?.error?.message ?? 'El partido ya inició; no se puede registrar la predicción.';
+          vm.errorMessage = err?.error?.message ?? PREDICTIONS_COPY.feedback.kickoffConflict;
         } else {
-          vm.errorMessage = err?.error?.message ?? 'No se pudo guardar la predicción.';
+          vm.errorMessage = err?.error?.message ?? PREDICTIONS_COPY.feedback.saveError;
         }
         this.notifyGroupsChanged();
       },
@@ -249,7 +250,7 @@ export class Predictions implements OnInit, OnDestroy {
       },
       error: () => {
         this.loading.set(false);
-        this.loadError.set('No se pudieron cargar los partidos. Intenta nuevamente más tarde.');
+        this.loadError.set(PREDICTIONS_COPY.states.loadError);
       },
     });
   }

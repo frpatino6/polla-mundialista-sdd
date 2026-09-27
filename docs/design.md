@@ -223,7 +223,7 @@ Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Predi
 | PUT | `/api/admin/matches/{matchId}/result` | Admin | Ingresa/corrige el resultado real y dispara recálculo |
 | GET | `/api/leaderboard` | User/Admin | Ranking global ordenado por puntos |
 
-**Filas planificadas** (Tarea #14, aún **no implementadas** — no forman parte del contrato vigente hasta que esa tarea cierre):
+**Filas de recuperación de contraseña** (Tarea #14, **implementadas**):
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
@@ -239,16 +239,14 @@ Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Predi
 - **Exposición**: `app.UseSwagger()` + `app.UseSwaggerUI()` se registran solo bajo `if (app.Environment.IsDevelopment())` (o una config flag equivalente) — no se expone el explorador interactivo en producción/Render, aunque el documento JSON puede habilitarse para integraciones externas (ej. importar la colección en el MCP de Postman).
 - **Alcance**: cubre los 8 endpoints del contrato de la tabla de §7 tal cual quedan definidos por los Controllers existentes (`AuthController`, `PredictionsController`, `AdminController`, `LeaderboardController`); no se generan clientes ni se versiona el documento — fuera de alcance de la prueba técnica.
 
-### 7.2 Recuperación de contraseña (Tarea #14 — planificada)
-
-Se diseña acá, pero **no se implementa en esta tarea**: el refactor visual de Login detectó que el enlace "¿Olvidaste tu contraseña?" no tenía ningún endpoint que lo respaldara. Queda registrado como contrato para que la tarea #14 lo ejecute.
+### 7.2 Recuperación de contraseña (Tarea #14 — implementada)
 
 - **Flujo**: `POST /api/auth/forgot-password { email }` → respuesta genérica; el usuario recibe un enlace/token por correo → `POST /api/auth/reset-password { token, newPassword }` → el JWT del usuario deja de ser válido y debe volver a iniciar sesión.
 - **Anti-enumeración (requisito de seguridad)**: `forgot-password` devuelve **siempre** el mismo status y el mismo mensaje, exista o no el email. La UI nunca distingue "usuario no encontrado" de "correo enviado". Un test de integración debe verificar que ambos casos devuelven una respuesta indistinguible.
 - **Token**: aleatorio criptográficamente seguro (≥32 bytes), **almacenado hasheado** en una entidad `PasswordResetToken` (`UserId`, `TokenHash`, `ExpiresAt`, `ConsumedAt`), expiración de 1 hora, de un solo uso, e invalidado explícitamente al cambiar la contraseña.
 - **Envío de correo**: fuera de alcance para una prueba técnica — no hay proveedor de email. Se define la abstracción `IEmailSender` en `Application` con una implementación no-op por defecto; en `Development` el token se expone en la respuesta y se loguea para poder probar el flujo end-to-end, mientras que en otros entornos se descarta. Sustituir la implementación no-op es el punto de extensión para un proveedor real.
 - **Rate limiting**: por simplicidad del alcance, se acepta sin throttling en la primera versión, dejando la interfaz (`IEmailSender`) lista para incorporarlo; se documenta como riesgo conocido.
-- **Frontend**: rutas públicas `/forgot-password` y `/reset-password` en la feature `auth/`, con el mismo lenguaje visual del §5.1. Hasta que la tarea #14 cierre, el enlace aparece en Login como elemento deshabilitado con `title`/`aria-label` "Disponible próximamente" — no navega a una ruta inexistente.
+- **Frontend**: rutas públicas `/forgot-password` y `/reset-password` en la feature `auth/`, con el mismo lenguaje visual del §5.1. El enlace "¿Olvidaste tu contraseña?" de Login quedó habilitado y navega a la ruta real.
 - **"Recordarme"**: el checkbox se incluye en la UI de Login puramente visual, respaldado por un signal, sin efecto en la sesión: **no existe refresh token** (el JWT expira y la sesión vive en `localStorage`). Dejar el checkbox esperando un mecanismo de refresco que no existe sería un beacon de seguridad; se cablea recién cuando exista esa capacidad.
 
 

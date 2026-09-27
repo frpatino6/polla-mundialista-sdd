@@ -3,6 +3,11 @@ import { provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { Register } from './register';
+import { REGISTER_COPY } from './register.copy';
+
+// Mensaje tal como lo devuelve la API cuando el email ya existe: es copy del servidor,
+// no de la interfaz, por eso vive acá y no en REGISTER_COPY.
+const serverError = 'El email ya está registrado.';
 
 describe('Register', () => {
   let component: Register;
@@ -54,17 +59,28 @@ describe('Register', () => {
 
   it('shows an error message when registration fails', () => {
     authServiceSpy.register.mockReturnValue(
-      throwError(() => ({ error: { message: 'El email ya está registrado.' } })),
+      throwError(() => ({ error: { message: serverError } })),
     );
     component.form.setValue({ email: 'dup@example.com', password: 'secret123' });
 
     component.submit();
     fixture.detectChanges();
 
-    expect(component.errorMessage()).toBe('El email ya está registrado.');
+    expect(component.errorMessage()).toBe(serverError);
     expect(router.navigate).not.toHaveBeenCalled();
+    expect(host().querySelector('[role="alert"]')?.textContent).toContain(serverError);
+  });
+
+  it('falls back to the copy error message when the API error carries no message', () => {
+    authServiceSpy.register.mockReturnValue(throwError(() => ({})));
+    component.form.setValue({ email: 'dup@example.com', password: 'secret123' });
+
+    component.submit();
+    fixture.detectChanges();
+
+    expect(component.errorMessage()).toBe(REGISTER_COPY.errors.fallback);
     expect(host().querySelector('[role="alert"]')?.textContent).toContain(
-      'El email ya está registrado.',
+      REGISTER_COPY.errors.fallback,
     );
   });
 
@@ -75,12 +91,16 @@ describe('Register', () => {
     const input = host().querySelector('#password') as HTMLInputElement;
     expect(input.type).toBe('password');
 
-    (host().querySelector('[aria-label="Mostrar contraseña"]') as HTMLButtonElement).click();
+    (
+      host().querySelector(
+        `[aria-label="${REGISTER_COPY.actions.showPassword}"]`,
+      ) as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
 
     expect(input.type).toBe('text');
     const hideToggle = host().querySelector(
-      '[aria-label="Ocultar contraseña"]',
+      `[aria-label="${REGISTER_COPY.actions.hidePassword}"]`,
     ) as HTMLButtonElement;
     expect(hideToggle.getAttribute('aria-pressed')).toBe('true');
 
@@ -102,7 +122,7 @@ describe('Register', () => {
     const button = host().querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(component.submitting()).toBe(true);
     expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Creando cuenta…');
+    expect(button.textContent).toContain(REGISTER_COPY.actions.submitting);
     expect(button.querySelector('svg.animate-spin')).toBeTruthy();
   });
 
@@ -123,6 +143,53 @@ describe('Register', () => {
     expect(email.getAttribute('aria-invalid')).toBe('true');
     expect(email.getAttribute('aria-describedby')).toBe('email-error');
     expect(host().querySelector('#email-error')).toBeTruthy();
+  });
+
+  it('renders the REGISTER_COPY texts keeping every accessible label attached to its control', () => {
+    const heading = host().querySelector('h1') as HTMLElement;
+    const brand = host().querySelector('p.uppercase') as HTMLElement;
+    const emailLabel = host().querySelector('label[for="email"]') as HTMLLabelElement;
+    const passwordLabel = host().querySelector('label[for="password"]') as HTMLLabelElement;
+
+    expect(heading.textContent?.trim()).toBe(REGISTER_COPY.title);
+    expect(brand.textContent?.trim()).toBe(REGISTER_COPY.brand);
+    expect((heading.nextElementSibling as HTMLElement).textContent?.trim()).toBe(
+      REGISTER_COPY.subtitle,
+    );
+    expect(emailLabel.textContent?.trim()).toBe(REGISTER_COPY.fields.email.label);
+    expect(passwordLabel.textContent?.trim()).toBe(REGISTER_COPY.fields.password.label);
+    expect((host().querySelector('#email') as HTMLInputElement).getAttribute('placeholder')).toBe(
+      REGISTER_COPY.fields.email.placeholder,
+    );
+    expect(
+      (host().querySelector('#password') as HTMLInputElement).getAttribute('placeholder'),
+    ).toBe(REGISTER_COPY.fields.password.placeholder);
+    expect((host().querySelector('button[type="submit"]') as HTMLElement).textContent?.trim()).toBe(
+      REGISTER_COPY.actions.submit,
+    );
+    expect((host().querySelector('p.mt-6') as HTMLElement).textContent?.trim()).toBe(
+      `${REGISTER_COPY.hasAccount.prompt} ${REGISTER_COPY.hasAccount.cta}`,
+    );
+
+    expect(emailLabel.getAttribute('for')).toBe(
+      (host().querySelector('#email') as HTMLElement).getAttribute('id'),
+    );
+    expect(passwordLabel.getAttribute('for')).toBe(
+      (host().querySelector('#password') as HTMLElement).getAttribute('id'),
+    );
+  });
+
+  it('renders the field validation messages from the copy', () => {
+    component.form.setValue({ email: 'not-an-email', password: '' });
+    component.submit();
+    fixture.detectChanges();
+
+    expect(host().querySelector('#email-error')?.textContent?.trim()).toBe(
+      REGISTER_COPY.errors.email,
+    );
+    expect(host().querySelector('#password-error')?.textContent?.trim()).toBe(
+      REGISTER_COPY.errors.password,
+    );
   });
 
   it('does not render the login-only recovery affordances', () => {

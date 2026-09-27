@@ -45,24 +45,24 @@
         </span>
 
         <p class="mt-5 text-xs font-semibold tracking-[0.2em] text-emerald-400 uppercase">
-          Polla Mundialista
+          {{ copy.brand }}
         </p>
-        <h1 class="mt-2 text-2xl font-bold tracking-tight text-white">Bienvenido de nuevo</h1>
-        <p class="mt-2 text-sm leading-relaxed text-slate-400">
-          Predice los resultados del Mundial y compite en el leaderboard con el resto de la polla.
-        </p>
+        <h1 class="mt-2 text-2xl font-bold tracking-tight text-white">{{ copy.title }}</h1>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">{{ copy.subtitle }}</p>
       </div>
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="mt-8 space-y-5" novalidate>
         <div>
-          <label for="email" class="mb-1.5 block text-sm font-medium text-slate-300">Email</label>
+          <label for="email" class="mb-1.5 block text-sm font-medium text-slate-300">{{
+            copy.fields.email.label
+          }}</label>
           <div class="relative">
             <input
               id="email"
               type="email"
               formControlName="email"
               autocomplete="email"
-              placeholder="tu@email.com"
+              [placeholder]="copy.fields.email.placeholder"
               [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
               [attr.aria-describedby]="
                 form.controls.email.invalid && form.controls.email.touched ? 'email-error' : null
@@ -101,22 +101,22 @@
                 <path d="M12 8v4" />
                 <path d="M12 16h.01" />
               </svg>
-              Ingresa un email válido.
+              {{ copy.errors.email }}
             </p>
           }
         </div>
 
         <div>
-          <label for="password" class="mb-1.5 block text-sm font-medium text-slate-300"
-            >Contraseña</label
-          >
+          <label for="password" class="mb-1.5 block text-sm font-medium text-slate-300">{{
+            copy.fields.password.label
+          }}</label>
           <div class="relative">
             <input
               id="password"
               [type]="passwordVisible() ? 'text' : 'password'"
               formControlName="password"
               autocomplete="current-password"
-              placeholder="••••••••"
+              [placeholder]="copy.fields.password.placeholder"
               [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
               [attr.aria-describedby]="
                 form.controls.password.invalid && form.controls.password.touched
@@ -144,7 +144,9 @@
               type="button"
               (click)="togglePasswordVisibility()"
               [attr.aria-pressed]="passwordVisible()"
-              [attr.aria-label]="passwordVisible() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-label]="
+                passwordVisible() ? copy.actions.hidePassword : copy.actions.showPassword
+              "
               class="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-emerald-400 focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:outline-none"
             >
               @if (passwordVisible()) {
@@ -205,7 +207,7 @@
                 <path d="M12 8v4" />
                 <path d="M12 16h.01" />
               </svg>
-              La contraseña debe tener al menos 6 caracteres.
+              {{ copy.errors.password }}
             </p>
           }
         </div>
@@ -222,13 +224,13 @@
               (change)="toggleRememberMe($event)"
               class="size-4 shrink-0 cursor-pointer rounded border-slate-700 accent-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:outline-none"
             />
-            Recordarme
+            {{ copy.rememberMe }}
           </label>
 
           <a
             routerLink="/forgot-password"
             class="rounded text-sm text-slate-400 transition-colors hover:text-emerald-400 focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
-            >¿Olvidaste tu contraseña?</a
+            >{{ copy.forgotPassword }}</a
           >
         </div>
 
@@ -275,19 +277,19 @@
             >
               <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
-            <span>Ingresando…</span>
+            <span>{{ copy.actions.submitting }}</span>
           } @else {
-            <span>Ingresar</span>
+            <span>{{ copy.actions.submit }}</span>
           }
         </button>
       </form>
 
       <p class="mt-6 text-center text-sm text-slate-400">
-        ¿No tienes cuenta?
+        {{ copy.noAccount.prompt }}
         <a
           routerLink="/register"
           class="rounded font-semibold text-emerald-400 transition-colors hover:text-emerald-300 focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
-          >Regístrate</a
+          >{{ copy.noAccount.cta }}</a
         >
       </p>
     </div>

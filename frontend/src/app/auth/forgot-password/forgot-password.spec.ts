@@ -3,6 +3,11 @@ import { provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ForgotPassword } from './forgot-password';
+import { FORGOT_PASSWORD_COPY } from './forgot-password.copy';
+
+// Mensaje genérico tal como lo devuelve la API (anti-enumeración, docs/design.md §7.2):
+// es copy del servidor, no de la interfaz, por eso vive acá y no en FORGOT_PASSWORD_COPY.
+const serverGenericMessage = 'Si el correo está registrado, se enviará un enlace de recuperación.';
 
 describe('ForgotPassword', () => {
   let component: ForgotPassword;
@@ -38,16 +43,15 @@ describe('ForgotPassword', () => {
   });
 
   it('shows the exact generic message returned by the backend on success', () => {
-    const genericMessage = 'Si el correo está registrado, se enviará un enlace de recuperación.';
-    authServiceSpy.forgotPassword.mockReturnValue(of({ message: genericMessage }));
+    authServiceSpy.forgotPassword.mockReturnValue(of({ message: serverGenericMessage }));
     component.form.setValue({ email: 'user@example.com' });
 
     component.submit();
     fixture.detectChanges();
 
     expect(authServiceSpy.forgotPassword).toHaveBeenCalledWith('user@example.com');
-    expect(component.successMessage()).toBe(genericMessage);
-    expect(host().querySelector('[role="status"]')?.textContent).toContain(genericMessage);
+    expect(component.successMessage()).toBe(serverGenericMessage);
+    expect(host().querySelector('[role="status"]')?.textContent).toContain(serverGenericMessage);
     // El formulario se reemplaza por el estado de éxito.
     expect(host().querySelector('form')).toBeNull();
   });
@@ -56,13 +60,12 @@ describe('ForgotPassword', () => {
     // No debe existir ninguna rama en el componente que distinga ambos casos: el backend
     // ya devuelve el mismo mensaje siempre (anti-enumeración, docs/design.md §7.2), y este
     // test documenta que el frontend simplemente lo reenvía tal cual.
-    const genericMessage = 'Si el correo está registrado, se enviará un enlace de recuperación.';
-    authServiceSpy.forgotPassword.mockReturnValue(of({ message: genericMessage }));
+    authServiceSpy.forgotPassword.mockReturnValue(of({ message: serverGenericMessage }));
     component.form.setValue({ email: 'nonexistent@example.com' });
 
     component.submit();
 
-    expect(component.successMessage()).toBe(genericMessage);
+    expect(component.successMessage()).toBe(serverGenericMessage);
     expect(component.errorMessage()).toBeNull();
   });
 
@@ -73,9 +76,9 @@ describe('ForgotPassword', () => {
     component.submit();
     fixture.detectChanges();
 
-    expect(component.errorMessage()).toBe('No se pudo enviar la solicitud. Intenta de nuevo.');
+    expect(component.errorMessage()).toBe(FORGOT_PASSWORD_COPY.errors.request);
     expect(host().querySelector('[role="alert"]')?.textContent).toContain(
-      'No se pudo enviar la solicitud.',
+      FORGOT_PASSWORD_COPY.errors.request,
     );
   });
 
@@ -89,7 +92,7 @@ describe('ForgotPassword', () => {
     const button = host().querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(component.submitting()).toBe(true);
     expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Enviando…');
+    expect(button.textContent).toContain(FORGOT_PASSWORD_COPY.actions.submitting);
     expect(button.querySelector('svg.animate-spin')).toBeTruthy();
   });
 
@@ -112,6 +115,38 @@ describe('ForgotPassword', () => {
   it('links back to /login', () => {
     const link = host().querySelector('a[routerLink="/login"]');
 
-    expect(link?.textContent).toContain('Inicia sesión');
+    expect(link?.textContent).toContain(FORGOT_PASSWORD_COPY.rememberedPassword.cta);
+  });
+
+  it('renders the FORGOT_PASSWORD_COPY texts keeping the accessible label attached to its control', () => {
+    const heading = host().querySelector('h1') as HTMLElement;
+    const brand = host().querySelector('p.uppercase') as HTMLElement;
+    const emailLabel = host().querySelector('label[for="email"]') as HTMLLabelElement;
+    const email = host().querySelector('#email') as HTMLInputElement;
+
+    expect(heading.textContent?.trim()).toBe(FORGOT_PASSWORD_COPY.title);
+    expect(brand.textContent?.trim()).toBe(FORGOT_PASSWORD_COPY.brand);
+    expect((heading.nextElementSibling as HTMLElement).textContent?.trim()).toBe(
+      FORGOT_PASSWORD_COPY.subtitle,
+    );
+    expect(emailLabel.textContent?.trim()).toBe(FORGOT_PASSWORD_COPY.fields.email.label);
+    expect(email.getAttribute('placeholder')).toBe(FORGOT_PASSWORD_COPY.fields.email.placeholder);
+    expect((host().querySelector('button[type="submit"]') as HTMLElement).textContent?.trim()).toBe(
+      FORGOT_PASSWORD_COPY.actions.submit,
+    );
+    expect((host().querySelector('p.mt-6') as HTMLElement).textContent?.trim()).toBe(
+      `${FORGOT_PASSWORD_COPY.rememberedPassword.prompt} ${FORGOT_PASSWORD_COPY.rememberedPassword.cta}`,
+    );
+    expect(emailLabel.getAttribute('for')).toBe(email.getAttribute('id'));
+  });
+
+  it('renders the field validation message from the copy', () => {
+    component.form.setValue({ email: 'not-an-email' });
+    component.submit();
+    fixture.detectChanges();
+
+    expect(host().querySelector('#email-error')?.textContent?.trim()).toBe(
+      FORGOT_PASSWORD_COPY.errors.email,
+    );
   });
 });

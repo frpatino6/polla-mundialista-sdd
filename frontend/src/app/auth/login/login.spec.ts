@@ -3,6 +3,11 @@ import { provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { Login } from './login';
+import { LOGIN_COPY } from './login.copy';
+
+// Mensaje tal como lo devuelve la API en un fallo de autenticación: es copy del servidor,
+// no de la interfaz, por eso vive acá y no en LOGIN_COPY.
+const serverError = 'Credenciales inválidas.';
 
 describe('Login', () => {
   let component: Login;
@@ -63,19 +68,15 @@ describe('Login', () => {
   });
 
   it('shows an error message when login fails', () => {
-    authServiceSpy.login.mockReturnValue(
-      throwError(() => ({ error: { message: 'Credenciales inválidas.' } })),
-    );
+    authServiceSpy.login.mockReturnValue(throwError(() => ({ error: { message: serverError } })));
     component.form.setValue({ email: 'user@example.com', password: 'wrongpass' });
 
     component.submit();
     fixture.detectChanges();
 
-    expect(component.errorMessage()).toBe('Credenciales inválidas.');
+    expect(component.errorMessage()).toBe(serverError);
     expect(router.navigate).not.toHaveBeenCalled();
-    expect(host().querySelector('[role="alert"]')?.textContent).toContain(
-      'Credenciales inválidas.',
-    );
+    expect(host().querySelector('[role="alert"]')?.textContent).toContain(serverError);
   });
 
   it('toggles the password visibility without submitting the form', () => {
@@ -85,12 +86,14 @@ describe('Login', () => {
     const input = host().querySelector('#password') as HTMLInputElement;
     expect(input.type).toBe('password');
 
-    (host().querySelector('[aria-label="Mostrar contraseña"]') as HTMLButtonElement).click();
+    (
+      host().querySelector(`[aria-label="${LOGIN_COPY.actions.showPassword}"]`) as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
 
     expect(input.type).toBe('text');
     const hideToggle = host().querySelector(
-      '[aria-label="Ocultar contraseña"]',
+      `[aria-label="${LOGIN_COPY.actions.hidePassword}"]`,
     ) as HTMLButtonElement;
     expect(hideToggle.getAttribute('aria-pressed')).toBe('true');
 
@@ -112,7 +115,7 @@ describe('Login', () => {
     const button = host().querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(component.submitting()).toBe(true);
     expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Ingresando…');
+    expect(button.textContent).toContain(LOGIN_COPY.actions.submitting);
     expect(button.querySelector('svg.animate-spin')).toBeTruthy();
   });
 
@@ -120,7 +123,7 @@ describe('Login', () => {
     const link = host().querySelector('a[routerLink="/forgot-password"]') as HTMLAnchorElement;
 
     expect(link).toBeTruthy();
-    expect(link.textContent).toContain('¿Olvidaste tu contraseña?');
+    expect(link.textContent).toContain(LOGIN_COPY.forgotPassword);
     expect(link.hasAttribute('aria-disabled')).toBe(false);
     expect(link.getAttribute('title')).toBeNull();
 
@@ -170,5 +173,48 @@ describe('Login', () => {
     expect(email.getAttribute('aria-invalid')).toBe('true');
     expect(email.getAttribute('aria-describedby')).toBe('email-error');
     expect(host().querySelector('#email-error')).toBeTruthy();
+  });
+
+  it('renders the LOGIN_COPY texts keeping every accessible label attached to its control', () => {
+    const heading = host().querySelector('h1') as HTMLElement;
+    const brand = host().querySelector('p.uppercase') as HTMLElement;
+    const emailLabel = host().querySelector('label[for="email"]') as HTMLLabelElement;
+    const passwordLabel = host().querySelector('label[for="password"]') as HTMLLabelElement;
+
+    expect(heading.textContent?.trim()).toBe(LOGIN_COPY.title);
+    expect(brand.textContent?.trim()).toBe(LOGIN_COPY.brand);
+    expect((heading.nextElementSibling as HTMLElement).textContent?.trim()).toBe(
+      LOGIN_COPY.subtitle,
+    );
+    expect(emailLabel.textContent?.trim()).toBe(LOGIN_COPY.fields.email.label);
+    expect(passwordLabel.textContent?.trim()).toBe(LOGIN_COPY.fields.password.label);
+    expect(
+      (
+        host().querySelector('a[routerLink="/forgot-password"]') as HTMLAnchorElement
+      ).textContent?.trim(),
+    ).toBe(LOGIN_COPY.forgotPassword);
+    expect(
+      (host().querySelector('a[routerLink="/register"]') as HTMLAnchorElement).textContent?.trim(),
+    ).toBe(LOGIN_COPY.noAccount.cta);
+
+    expect(emailLabel.getAttribute('for')).toBe(
+      (host().querySelector('#email') as HTMLElement).getAttribute('id'),
+    );
+    expect(passwordLabel.getAttribute('for')).toBe(
+      (host().querySelector('#password') as HTMLElement).getAttribute('id'),
+    );
+  });
+
+  it('falls back to the copy error message when the API error carries no message', () => {
+    authServiceSpy.login.mockReturnValue(throwError(() => ({})));
+    component.form.setValue({ email: 'user@example.com', password: 'wrongpass' });
+
+    component.submit();
+    fixture.detectChanges();
+
+    expect(component.errorMessage()).toBe(LOGIN_COPY.errors.fallback);
+    expect(host().querySelector('[role="alert"]')?.textContent).toContain(
+      LOGIN_COPY.errors.fallback,
+    );
   });
 });

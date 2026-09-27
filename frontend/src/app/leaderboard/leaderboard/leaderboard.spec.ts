@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { LeaderboardEntryDto } from '../../core/models/leaderboard.models';
 import { LeaderboardService } from '../../core/services/leaderboard.service';
 import { Leaderboard } from './leaderboard';
+import { LEADERBOARD_COPY } from './leaderboard.copy';
 
 describe('Leaderboard', () => {
   let leaderboardServiceMock: { getLeaderboard: ReturnType<typeof vi.fn> };
@@ -64,7 +65,7 @@ describe('Leaderboard', () => {
   it('shows a friendly message when the leaderboard is empty', () => {
     const fixture = setup([]);
 
-    expect(fixture.nativeElement.textContent).toContain('Todavía no hay predicciones registradas');
+    expect(fixture.nativeElement.textContent).toContain(LEADERBOARD_COPY.states.empty);
   });
 
   it('re-queries the backend (no stale cache) every time the component initializes', () => {
@@ -99,7 +100,10 @@ describe('Leaderboard', () => {
     const fixture = TestBed.createComponent(Leaderboard);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.loadError()).toContain('No se pudo cargar el leaderboard');
+    expect(fixture.componentInstance.loadError()).toBe(LEADERBOARD_COPY.states.loadError);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]')?.textContent,
+    ).toContain(LEADERBOARD_COPY.states.loadError);
   });
 
   it('renderiza el navbar compartido con la navegación unificada', () => {
@@ -128,6 +132,46 @@ describe('Leaderboard', () => {
     expect(table!.querySelector('thead')).not.toBeNull();
   });
 
+  it('renderiza los textos de LEADERBOARD_COPY con el caption y los encabezados accesibles del copy', () => {
+    const entries: LeaderboardEntryDto[] = [
+      { userId: 'u1', email: 'ana@example.com', totalPoints: 9, exactPredictions: 3 },
+    ];
+    const root = setup(entries).nativeElement as HTMLElement;
+
+    const heading = root.querySelector('h1') as HTMLElement;
+    expect(heading.textContent?.trim()).toBe(LEADERBOARD_COPY.title);
+    expect((heading.nextElementSibling as HTMLElement).textContent?.trim()).toBe(
+      LEADERBOARD_COPY.subtitle,
+    );
+
+    const table = root.querySelector('table') as HTMLTableElement;
+    expect(table.querySelector('caption')?.textContent?.trim()).toBe(
+      LEADERBOARD_COPY.table.caption,
+    );
+
+    // Cada th conserva scope="col" y ahora rotula su columna con el texto del copy.
+    const headers = [...table.querySelectorAll('th')];
+    expect(headers.map((th) => th.getAttribute('scope'))).toStrictEqual([
+      'col',
+      'col',
+      'col',
+      'col',
+    ]);
+    expect(headers.map((th) => th.textContent?.trim())).toStrictEqual([
+      LEADERBOARD_COPY.table.columns.position,
+      LEADERBOARD_COPY.table.columns.user,
+      LEADERBOARD_COPY.table.columns.points,
+      LEADERBOARD_COPY.table.columns.exactPredictions,
+    ]);
+
+    // La fila propia mantiene el marcador visible y el texto solo para lectores de pantalla.
+    const marker = root.querySelector('[data-current-user]') as HTMLElement;
+    expect(marker.textContent?.trim()).toBe(LEADERBOARD_COPY.currentUser.badge);
+    expect(root.querySelector('td .sr-only')?.textContent?.trim()).toBe(
+      LEADERBOARD_COPY.currentUser.srOnly,
+    );
+  });
+
   it('resalta la fila del usuario en curso sin depender solo del color', () => {
     // La sesión mockeada es ana@example.com (ver configureProviders), segunda en el ranking.
     const entries: LeaderboardEntryDto[] = [
@@ -147,8 +191,8 @@ describe('Leaderboard', () => {
     // Marcador textual: visible para todos y announced para lectores de pantalla.
     const markers = root.querySelectorAll('[data-current-user]');
     expect(markers.length).toBe(1);
-    expect(markers[0].textContent).toContain('Vos');
-    expect(root.textContent).toContain('(tu usuario)');
+    expect(markers[0].textContent).toContain(LEADERBOARD_COPY.currentUser.badge);
+    expect(root.textContent).toContain(LEADERBOARD_COPY.currentUser.srOnly);
   });
 
   it('no resalta ninguna fila cuando la entrada no corresponde a la sesión', () => {
@@ -161,6 +205,6 @@ describe('Leaderboard', () => {
 
     expect(root.querySelector('[data-current-user]')).toBeNull();
     expect(root.querySelectorAll('tbody tr')[0].className).not.toContain('bg-emerald-500/5');
-    expect(root.textContent).not.toContain('(tu usuario)');
+    expect(root.textContent).not.toContain(LEADERBOARD_COPY.currentUser.srOnly);
   });
 });

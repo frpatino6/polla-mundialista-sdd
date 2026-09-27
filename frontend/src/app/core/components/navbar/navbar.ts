@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { NAVBAR_COPY } from './navbar.copy';
 
 /**
  * Barra de navegación compartida por las cuatro pantallas internas de la polla
@@ -18,6 +19,8 @@ import { AuthService } from '../../services/auth.service';
 })
 export class Navbar {
   private readonly authService = inject(AuthService);
+
+  readonly copy = NAVBAR_COPY;
 
   readonly email = this.authService.currentUser?.email ?? null;
   readonly initial = this.email?.charAt(0).toUpperCase() ?? '';

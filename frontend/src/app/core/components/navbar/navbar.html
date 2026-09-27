@@ -28,14 +28,14 @@
       </svg>
     </span>
     <span class="flex flex-col leading-tight">
-      <span class="text-[11px] font-semibold tracking-[0.2em] text-emerald-400 uppercase"
-        >Polla</span
-      >
-      <span class="text-base font-bold tracking-tight text-white">Mundialista</span>
+      <span class="text-[11px] font-semibold tracking-[0.2em] text-emerald-400 uppercase">{{
+        copy.brand.eyebrow
+      }}</span>
+      <span class="text-base font-bold tracking-tight text-white">{{ copy.brand.name }}</span>
     </span>
   </a>
 
-  <nav aria-label="Principal" class="flex flex-wrap items-center gap-1">
+  <nav [attr.aria-label]="copy.nav.ariaLabel" class="flex flex-wrap items-center gap-1">
     <a
       routerLink="/leaderboard"
       routerLinkActive
@@ -47,7 +47,7 @@
           ? 'border-emerald-400 bg-slate-800 font-semibold text-white'
           : 'border-transparent font-medium text-slate-400 hover:bg-slate-800/60 hover:text-white'
       "
-      >Leaderboard</a
+      >{{ copy.links.leaderboard }}</a
     >
 
     <a
@@ -61,7 +61,7 @@
           ? 'border-emerald-400 bg-slate-800 font-semibold text-white'
           : 'border-transparent font-medium text-slate-400 hover:bg-slate-800/60 hover:text-white'
       "
-      >Mi Historial</a
+      >{{ copy.links.history }}</a
     >
 
     @if (isAdmin) {
@@ -76,7 +76,7 @@
             ? 'border-emerald-400 bg-slate-800 font-semibold text-white'
             : 'border-transparent font-medium text-slate-400 hover:bg-slate-800/60 hover:text-white'
         "
-        >Panel Admin</a
+        >{{ copy.links.admin }}</a
       >
     }
   </nav>
@@ -111,7 +111,7 @@
         <polyline points="16 17 21 12 16 7" />
         <line x1="21" x2="9" y1="12" y2="12" />
       </svg>
-      <span>Cerrar sesión</span>
+      <span>{{ copy.actions.logout }}</span>
     </button>
   </div>
 </header>

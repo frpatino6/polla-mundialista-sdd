@@ -6,6 +6,7 @@ import {
   teamFlag,
   teamInitials,
 } from '../../core/models/predictions.models';
+import { HISTORY_COPY } from './history.copy';
 
 /**
  * Historial personal de predicciones (Tarea #13). Reutiliza
@@ -26,6 +27,8 @@ import {
 })
 export class History implements OnInit {
   private readonly predictionsService = inject(PredictionsService);
+
+  readonly copy = HISTORY_COPY;
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
@@ -52,7 +55,7 @@ export class History implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.loadError.set('No se pudo cargar tu historial. Intenta nuevamente más tarde.');
+        this.loadError.set(HISTORY_COPY.states.loadError);
       },
     });
   }

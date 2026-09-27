@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { PredictionHistoryEntryDto } from '../../core/models/predictions.models';
 import { PredictionsService } from '../../core/services/predictions.service';
 import { History } from './history';
+import { HISTORY_COPY } from './history.copy';
 
 describe('History', () => {
   let predictionsServiceMock: { getMyHistory: ReturnType<typeof vi.fn> };
@@ -48,8 +49,8 @@ describe('History', () => {
     expect(row.textContent).toContain('Colombia vs Brasil');
     expect(row.textContent).toContain('2 - 1');
     expect(row.textContent).toContain('3');
-    expect(row.textContent).not.toContain('Pendiente');
-    expect(row.textContent).not.toContain('—');
+    expect(row.textContent).not.toContain(HISTORY_COPY.pending.result);
+    expect(row.textContent).not.toContain(HISTORY_COPY.pending.points);
   });
 
   it('renders a pending match (no real result yet) as "Pendiente" / "—"', () => {
@@ -69,16 +70,16 @@ describe('History', () => {
     const fixture = setup(history);
 
     const row = fixture.nativeElement.querySelector('tbody tr');
-    expect(row.textContent).toContain('Argentina vs Uruguay');
+    expect(row.textContent).toContain(`Argentina ${HISTORY_COPY.match.vs} Uruguay`);
     expect(row.textContent).toContain('1 - 0');
-    expect(row.textContent).toContain('Pendiente');
-    expect(row.textContent).toContain('—');
+    expect(row.textContent).toContain(HISTORY_COPY.pending.result);
+    expect(row.textContent).toContain(HISTORY_COPY.pending.points);
   });
 
   it('shows a friendly message when there is no history yet', () => {
     const fixture = setup([]);
 
-    expect(fixture.nativeElement.textContent).toContain('Todavía no has registrado predicciones');
+    expect(fixture.nativeElement.textContent).toContain(HISTORY_COPY.states.empty);
   });
 
   it('renderiza el navbar compartido con la navegación unificada', () => {
@@ -146,5 +147,56 @@ describe('History', () => {
     expect(headers.length).toBe(4);
     expect(headers.every((th) => th.getAttribute('scope') === 'col')).toBe(true);
     expect(table!.querySelector('thead')).not.toBeNull();
+  });
+
+  it('renderiza los textos de HISTORY_COPY con el caption y los encabezados accesibles del copy', () => {
+    const history: PredictionHistoryEntryDto[] = [
+      {
+        matchId: 'match-1',
+        homeTeam: 'Argentina',
+        awayTeam: 'Uruguay',
+        predictedHomeScore: 1,
+        predictedAwayScore: 0,
+        actualHomeScore: null,
+        actualAwayScore: null,
+        pointsAwarded: 0,
+      },
+    ];
+    const root = setup(history).nativeElement as HTMLElement;
+
+    const heading = root.querySelector('h1') as HTMLElement;
+    expect(heading.textContent?.trim()).toBe(HISTORY_COPY.title);
+    expect((heading.nextElementSibling as HTMLElement).textContent?.trim()).toBe(
+      HISTORY_COPY.subtitle,
+    );
+
+    const table = root.querySelector('table') as HTMLTableElement;
+    expect(table.querySelector('caption')?.textContent?.trim()).toBe(HISTORY_COPY.table.caption);
+
+    // Cada th conserva scope="col" y ahora rotula su columna con el texto del copy.
+    const headers = [...table.querySelectorAll('th')];
+    expect(headers.map((th) => th.getAttribute('scope'))).toStrictEqual([
+      'col',
+      'col',
+      'col',
+      'col',
+    ]);
+    expect(headers.map((th) => th.textContent?.trim())).toStrictEqual([
+      HISTORY_COPY.table.columns.match,
+      HISTORY_COPY.table.columns.prediction,
+      HISTORY_COPY.table.columns.actualResult,
+      HISTORY_COPY.table.columns.points,
+    ]);
+
+    // El partido pendiente separa los equipos con el "vs" del copy y rotula su estado.
+    const row = root.querySelector('tbody tr') as HTMLElement;
+    const cells = row.querySelectorAll('td');
+    expect((cells[0].querySelector('.uppercase') as HTMLElement).textContent?.trim()).toBe(
+      HISTORY_COPY.match.vs,
+    );
+    expect(cells[0].textContent).toContain('Argentina');
+    expect(cells[0].textContent).toContain('Uruguay');
+    expect(cells[2].textContent?.trim()).toBe(HISTORY_COPY.pending.result);
+    expect(cells[3].textContent?.trim()).toBe(HISTORY_COPY.pending.points);
   });
 });

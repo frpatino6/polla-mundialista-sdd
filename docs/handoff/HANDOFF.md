@@ -2,6 +2,91 @@
 
 ---
 
+## Handoff: 2026-09-27 (3) — Tarea #14 (Recuperación de contraseña) completa, backend+frontend+Postman, SIN COMMITEAR
+
+### Current Task State
+
+**`docs/tasks.md` fue renumerado de nuevo** (nota al inicio del archivo): se insertó la Tarea #14 (Recuperación de contraseña — hueco funcional detectado al rediseñar Login: el link "¿Olvidaste tu contraseña?" no tenía backend) y la Tarea #15 (refactor del copy de interfaz). Docker Compose ahora es **#16**, Render **#17**, C4 **#18**, Cierre **#19**. El diseño de ambas tareas nuevas YA estaba escrito en `docs/design.md` (§5.1/§5.2/§7.2) antes de ejecutarlas — no se diseñó nada nuevo en esta sesión, solo se ejecutó lo ya especificado.
+
+Además, entre el handoff anterior y este, el usuario (fuera de esta conversación, en otra sesión/directamente) ya había commiteado el rediseño visual de tema oscuro de Login/Register (`8d47bfb`) y otro commit de mejoras a predictions/history (`791d587`) — el HEAD real ya no era `3b2e972` al empezar esta sesión.
+
+**Tarea #14 (backend + frontend + Postman) quedó completa y verificada de forma independiente en esta sesión, pero SIN COMMITEAR** (se dejó así a propósito — el usuario/orquestador decide cuándo commitear, ningún subagente hizo commit).
+
+- Backend: **108/108 tests** (78 unit + 30 integration; baseline era 85, +23 nuevos). Build limpio, 0 warnings.
+- Frontend: **108/108 tests** (18 archivos). El "baseline 48" que se usó al delegar era viejo — el repo ya traía 108 antes de tocar nada por trabajo previo no reflejado en el handoff anterior.
+- Verificación end-to-end real: `curl` contra el backend real (anti-enumeración byte-a-byte, los 3 estados de error de reset, ciclo completo de contraseña vieja/nueva) + navegación real en Chrome (`/login` → link habilitado → `/forgot-password` → éxito → `/reset-password?token=...` → precarga de token → éxito/error).
+
+### Key Decisions
+
+- **Hash del token de reseteo = SHA-256 hex, no bcrypt/`IPasswordHasher`**: el token ya es un secreto aleatorio de 32 bytes con entropía completa (no una contraseña de usuario); necesita lookup determinístico por hash, y bcrypt no lo permite (salt distinto en cada llamada).
+- **Anti-enumeración absoluta e incondicional en todo entorno**: `ForgotPasswordCommandHandler` SIEMPRE devuelve `Success` con el mismo mensaje genérico, exista o no el email — nunca hay branch de `Failure` ahí. El token crudo NUNCA viaja en el body HTTP, en ningún entorno.
+- **"En Development se expone/loguea" (design.md §7.2) se interpretó como exposición solo vía `ILogger`** (en `NoOpEmailSender`, gateado por `IHostEnvironment.IsDevelopment()`), nunca en el response body — porque el host de test corre como Development por defecto, y exponerlo en el body ahí habría roto la garantía de anti-enumeración exigida como "Crítico".
+- **Invalidación del JWT anterior tras reset: fuera de alcance, no implementado.** Confirmado que no existe blacklist/revocación en el proyecto (JWT stateless, sin refresh token) — documentado como decisión, no como una funcionalidad nueva improvisada.
+- **Timing side-channel no eliminado del todo** (la rama "email existe" hace más trabajo async) — riesgo aceptado y documentado; la garantía exigida y testeada (status+body idénticos) sí se cumple.
+- **Frontend — sin campo de confirmación de contraseña en reset-password**: sigue el patrón real de Register (que tampoco lo pide), coincide 1:1 con el contrato del backend (`token` + `newPassword`).
+- **Frontend — `minLength(8)` en `newPassword`** (Login/Register usan 6): el `ResetPasswordCommandValidator` del backend exige mínimo 8; se igualó para no mostrar "éxito" en el form cuando el backend lo rechazaría.
+- **Frontend — precarga de `token` desde `?token=` en la URL** de `/reset-password` vía `ActivatedRoute` (no pedido literalmente, pero refleja cómo llegaría un usuario real desde el enlace de email/log). Primera vez que se usa `ActivatedRoute` en el frontend — es API estándar de `@angular/router`, no una librería nueva.
+- **Frontend — nuevo patrón visual de "éxito"** (`role="status"`, paleta `emerald-500/10`/`emerald-300`/`emerald-500/30`): no existía antes en el repo (solo el `role="alert"` rosa de error de Login/Register).
+- **Lección operativa importante de esta sesión — guardada en memoria global** (`~/.claude/projects/.../memory/feedback_no_nested_delegation.md`): un subagente delegado para el backend de la Tarea #14 aplicó la regla de "delegar código a un subagente" de forma recursiva sobre sí mismo (delegó a un fork, que delegó a otro fork), y los tres quedaron esperándose sin escribir nada, desperdiciando ~13 min y 144k+ tokens antes de que el usuario lo notara y se cortara la cadena manualmente. Regla corregida: la instrucción de delegar código es SOLO para el orquestador principal; todo prompt a un subagente debe decirle explícitamente que escriba el código él mismo y NO delegue más. Se aplicó así en el subagente del frontend de esta misma tarea, sin problemas.
+
+### Modified/Created Files (NINGUNO commiteado todavía)
+
+**Backend:**
+- Domain: `Entities/PasswordResetToken.cs` (nuevo), `Exceptions/DomainErrorMessages.cs` (+2 constantes), `Entities/User.cs` (+`ChangePassword`).
+- Application: `Abstractions/{IEmailSender.cs, IPasswordResetTokenRepository.cs}` (nuevos), `Abstractions/IUserRepository.cs` (+`UpdateAsync`), `Dtos/{ForgotPasswordResultDto.cs, ResetPasswordResultDto.cs}` (nuevos), `Auth/{ForgotPasswordCommand(Validator/Handler).cs, ResetPasswordCommand(Validator/Handler).cs}` (nuevos).
+- Infrastructure: `Persistence/Configurations/PasswordResetTokenConfiguration.cs`, `Persistence/Repositories/PasswordResetTokenRepository.cs` (nuevos), `Persistence/Repositories/UserRepository.cs` (+`UpdateAsync`), `Persistence/AppDbContext.cs` (+`DbSet<PasswordResetToken>`), `Services/NoOpEmailSender.cs` (nuevo), `DependencyInjection.cs` (+2 registros), migración `20260927153346_AddPasswordResetToken` (+Designer+Snapshot) — **ya aplicada** contra la BD Neon real vía `dotnet ef database update` (tabla `PasswordResetTokens` sí existe ahora en Neon).
+- Api: `Controllers/AuthController.cs` (+`ForgotPassword`/`ResetPassword`).
+- Tests: unit `PasswordResetTokenTests.cs`, `UserTests.cs` (+3), `ForgotPasswordCommandHandlerTests.cs`, `ResetPasswordCommandHandlerTests.cs`; integración `PasswordResetFlowTests.cs` (6 escenarios).
+
+**Frontend:**
+- `auth/forgot-password/{forgot-password.ts,.html,.css,.spec.ts}` (nuevo).
+- `auth/reset-password/{reset-password.ts,.html,.css,.spec.ts}` (nuevo).
+- `core/models/auth.models.ts` (+`ForgotPasswordResultDto`, `ResetPasswordResultDto`).
+- `core/services/auth.service.ts` (+`forgotPassword`, `resetPassword`), `auth.service.spec.ts` (+2 tests).
+- `app.routes.ts` (+rutas públicas `/forgot-password`, `/reset-password`, sin guard).
+- `auth/login/login.html` (link "¿Olvidaste tu contraseña?" ahora `routerLink` habilitado), `login.spec.ts` (test actualizado).
+
+**Postman (sincronizado, JSON local + MCP):**
+- `docs/postman/PollaMundialista.postman_collection.json`: +2 requests ("Olvidé mi Contraseña", "Resetear Contraseña") en la carpeta Auth, +variable de colección `resetToken`.
+- Colección remota real sincronizada vía MCP `postman`: `collectionId` = `3567004-a65aaeb2-4329-4c11-a91c-1534f0af52bd`, workspace "My Workspace" (`8752af08-c147-43da-832d-58c78b23fe4a`).
+
+### Blockers / Open Questions
+
+- **Nada bloqueante funcionalmente** — Tarea #14 verificada de punta a punta. Pendiente de decisión del usuario: ¿commitear ahora o seguir con la Tarea #15 antes de commitear?
+- **`git status`/`git log` fallan en el sandbox de Bash de ESTA sesión** con `fatal: unable to access '.git/config': Operation not permitted` (el binario resuelto es `/Applications/Xcode.app/Contents/Developer/usr/bin/git`). El archivo `.git/config` se pudo leer sin problema con la herramienta `Read` (contenido normal, sin nada raro) y otros comandos Bash (find/stat/ps) funcionan bien — parece un problema puntual del sandbox de esta sesión, no del repo. Verificar en la próxima sesión si persiste; si sí, probablemente haga falta que el usuario revise permisos de Xcode Command Line Tools / Full Disk Access para la app Claude Code.
+- **Dos procesos de servidor quedaron corriendo en la máquina** desde verificaciones de esta sesión (y posiblemente de antes): `dotnet run` del backend en `:5282` y `ng serve --port 4300`. Revisar con `lsof -iTCP:4300 -sTCP:LISTEN` / `:5282` antes de levantar nuevos, y matarlos si ya no hacen falta.
+
+### Next Steps
+
+1. **Decidir con el usuario si se commitea ahora** el trabajo de la Tarea #14 (backend+frontend+Postman) antes de seguir.
+2. **Tarea #15 — Refactor del copy de interfaz Angular** (`docs/tasks.md` líneas 140-146, diseño en `design.md` §5.2): extraer literales de UI a módulos tipados `*.copy.ts` por feature/pantalla. Sin cambiar copy visible ni comportamiento.
+3. Luego: Docker Compose (**#16**), Render (**#17**), diagrama C4 (**#18**), cierre de documentación (**#19**).
+4. Revisar si el problema de `git status` (ver Blockers) persiste en la próxima sesión.
+
+### Critical Context
+
+- Todo lo de las entradas anteriores de este log sigue aplicando (releer si hace falta contexto de Tareas #1-13).
+- **Regla nueva y crítica de esta sesión**: cuando se delega código a un subagente, el prompt DEBE incluir explícitamente "escribe el código tú mismo, no delegues a otro subagente ni a un fork" — la regla global de "delegar a un subagente" es solo para el orquestador principal, no se re-aplica en cadena. Ver memoria global `feedback_no_nested_delegation.md`.
+- La migración `AddPasswordResetToken` ya está aplicada contra la BD Neon real de desarrollo (no solo en SQLite de test) — la tabla `PasswordResetTokens` existe ahí.
+- El repo tiene git+remoto (`origin/main`, `https://github.com/frpatino6/polla-mundialista-sdd.git`); el usuario commitea él mismo o lo confirma explícitamente — nunca commitear/pushear sin pedido explícito.
+
+### Model Summary
+
+- Tarea #14 (Recuperación de contraseña: backend .NET + frontend Angular + Postman) completa y verificada de forma independiente — 108/108 tests backend, 108/108 tests frontend, verificación end-to-end real (curl + Chrome). SIN COMMITEAR a propósito.
+- `docs/tasks.md` renumerado otra vez: #14 Recuperación de contraseña (nueva), #15 Refactor de copy (nueva), Docker Compose ahora #16, Render #17, C4 #18, Cierre #19.
+- Decisiones de seguridad clave: hash SHA-256 del token de reseteo, anti-enumeración absoluta (mismo status+body siempre), token nunca en el body HTTP (solo logueado server-side en Development), invalidación de JWT anterior fuera de alcance (no hay mecanismo de revocación en el proyecto).
+- Colección de Postman sincronizada (archivo local + workspace remoto vía MCP) con los 2 endpoints nuevos.
+- **Incidente operativo importante**: un subagente aplicó la regla de "delegar código" recursivamente sobre sí mismo (fork→fork→fork), quedando los tres bloqueados esperándose sin escribir nada — el usuario lo detectó y se corrigió. Ahora es una regla explícita guardada en memoria: cada prompt a un subagente debe prohibirle delegar más.
+- Hallazgo pendiente sin resolver: `git status`/`git log` fallan con `Operation not permitted` en el sandbox Bash de esta sesión (el archivo en sí está bien, se lee normal con `Read`) — no bloqueó el trabajo (se verificó todo con `dotnet test`/`npx ng test`/`find`/`Read`), pero hay que revisarlo en la próxima sesión.
+- Quedaron corriendo en background un `dotnet run` (:5282) y un `ng serve --port 4300` de verificaciones de esta sesión — revisar/matar si ya no se usan.
+- Próximo paso natural: decidir commit, luego Tarea #15 (refactor de copy), luego Docker Compose/Render/C4/Cierre.
+
+### Handoff Context (paste into next session)
+
+Retomas "Polla Mundialista". La Tarea #14 (Recuperación de contraseña: backend .NET + frontend Angular + sync de Postman) está 100% completa y verificada de forma independiente (108/108 tests backend, 108/108 frontend, verificación end-to-end real con curl+Chrome) pero **SIN COMMITEAR** — pregunta primero al usuario si quiere commitear antes de seguir. `docs/tasks.md` se renumeró de nuevo: la #15 (refactor de copy de interfaz, diseño ya en `design.md` §5.2) es el siguiente paso natural tras el commit; Docker Compose/Render/C4/Cierre pasaron a #16-#19. Antes de nada: (1) relee `docs/tasks.md` completo para confirmar numeración vigente; (2) corre `dotnet test backend/PollaMundialista.sln` (espera 108/108) y `cd frontend && npx ng test --watch=false` (espera 108/108); (3) revisa si `git status`/`git log` siguen fallando con `Operation not permitted` en `.git/config` (problema puntual de sandbox detectado en la sesión anterior, no del repo — si persiste, puede requerir que el usuario revise permisos de Xcode CLT/Full Disk Access); (4) revisa con `lsof -iTCP:4300 -sTCP:LISTEN`/`:5282` si quedaron procesos `dotnet run`/`ng serve` corriendo de sesiones anteriores antes de levantar nuevos. Regla operativa crítica ahora vigente: TODO prompt a un subagente que escriba código debe decirle explícitamente que no delegue a otro subagente/fork (ver memoria global `feedback_no_nested_delegation.md`) — ya causó un bloqueo real de ~13 min y 144k+ tokens en la sesión anterior. Sigue usando CodeGraph (`codegraph_explore`) antes de grep/Read. No toques `AI_LOG.md` salvo pedido explícito. No commitees/pushees sin pedido explícito.
+
+---
+
 ## Handoff: 2026-09-27 (2) — Frontend completo (Tareas #10-13) y commiteado
 
 ### Current Task State
@@ -203,5 +288,33 @@ Estás retomando "Polla Mundialista" (prueba técnica Bizagi). Backend .NET 10 c
 - Si se toca el tema, re-medir contraste con el helper CDP antes de dar por bueno un color: la conversión a sRGB tiene que componer alfa (un `globalCompositeOperation='copy'` rompe la medición y da falsos fallos).
 - Siguiente trabajo grande del plan: Tarea #14, recuperación de contraseña (ya especificada en §7.2 y en tasks.md; ADR #11 y #12 la sostienen).
 - Después siguen #15 Docker Compose, #16 Render, #17 diagrama C4 y #18 cierre.
+
+---
+
+---
+
+## Handoff: 2026-09-27T16:30:09.843Z (auto-saved before compaction)
+
+### Compaction Snapshot
+
+- Trigger: opencode session compaction
+- Last user message:
+  (unavailable)
+
+- Last assistant message:
+
+  El archivo se lee bien (`read` y `head` funcionan), así que no es un permiso de archivo: es git blocked. Aíslo la causa:
+
+### Git Snapshot
+
+- (not a git repo)
+
+### Model Summary
+
+(TODO: rellenar tras la compactación — 8–12 bullets)
+
+### Handoff Context (paste into next session)
+
+(TODO: rellenar tras la compactación — 10–20 líneas de instrucciones concretas)
 
 ---

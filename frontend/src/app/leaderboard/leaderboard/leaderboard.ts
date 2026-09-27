@@ -3,6 +3,7 @@ import { Navbar } from '../../core/components/navbar/navbar';
 import { AuthService } from '../../core/services/auth.service';
 import { LeaderboardService } from '../../core/services/leaderboard.service';
 import { LeaderboardEntryDto } from '../../core/models/leaderboard.models';
+import { LEADERBOARD_COPY } from './leaderboard.copy';
 
 /**
  * Leaderboard global (Tarea #13). Renderiza las filas EN EL MISMO ORDEN en
@@ -33,6 +34,8 @@ export class Leaderboard implements OnInit {
   /** Email de la sesión en curso; null si no hay sesión (la fila no se resalta). */
   private readonly currentEmail = this.authService.currentUser?.email ?? null;
 
+  readonly copy = LEADERBOARD_COPY;
+
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
   readonly entries = signal<LeaderboardEntryDto[]>([]);
@@ -56,7 +59,7 @@ export class Leaderboard implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.loadError.set('No se pudo cargar el leaderboard. Intenta nuevamente más tarde.');
+        this.loadError.set(LEADERBOARD_COPY.states.loadError);
       },
     });
   }

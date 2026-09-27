@@ -1,18 +1,24 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError, Subject } from 'rxjs';
+import { NEVER, of, throwError, Subject } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { MatchesService } from '../../core/services/matches.service';
 import {
+  MATCH_GROUP_LABELS,
   MatchDto,
   PredictionDto,
   PredictionHistoryEntryDto,
 } from '../../core/models/predictions.models';
 import { PredictionsService } from '../../core/services/predictions.service';
 import { Predictions } from './predictions';
+import { PREDICTIONS_COPY } from './predictions.copy';
 
 /** "Ahora" fijo para que el guard de horario sea determinístico en los tests. */
 const NOW = new Date('2026-06-10T12:00:00Z');
+
+// Mensaje tal como lo devuelve la API en el 409 de kickoff: es copy del servidor,
+// no de la interfaz, por eso vive acá y no en PREDICTIONS_COPY.
+const serverKickoffConflict = 'El partido ya inició.';
 
 function createMatch(overrides: Partial<MatchDto> = {}): MatchDto {
   return {
@@ -47,8 +53,15 @@ describe('Predictions', () => {
     matches: MatchDto[],
     history: PredictionHistoryEntryDto[] = [],
     role: 'User' | 'Admin' | null = null,
+    load: 'ok' | 'pending' | 'error' = 'ok',
   ) {
-    matchesServiceMock = { getMatches: vi.fn().mockReturnValue(of(matches)) };
+    const matches$ =
+      load === 'error'
+        ? throwError(() => ({ status: 500 }))
+        : load === 'pending'
+          ? NEVER
+          : of(matches);
+    matchesServiceMock = { getMatches: vi.fn().mockReturnValue(matches$) };
     predictionsServiceMock = {
       getMyHistory: vi.fn().mockReturnValue(of(history)),
       registerPrediction: vi.fn(),
@@ -161,7 +174,7 @@ describe('Predictions', () => {
     fixture.componentInstance.submit(vm);
 
     expect(predictionsServiceMock.registerPrediction).toHaveBeenCalledWith('match-1', 2, 0);
-    expect(vm.savedMessage).toBe('Predicción guardada.');
+    expect(vm.savedMessage).toBe(PREDICTIONS_COPY.feedback.saved);
     expect(vm.existingPrediction?.predictedHomeScore).toBe(2);
     expect(vm.existingPrediction?.predictedAwayScore).toBe(0);
   });
@@ -172,14 +185,42 @@ describe('Predictions', () => {
     const vm = fixture.componentInstance.sections()[0].matches[0];
 
     predictionsServiceMock.registerPrediction.mockReturnValue(
-      throwError(() => ({ status: 409, error: { message: 'El partido ya inició.' } })),
+      throwError(() => ({ status: 409, error: { message: serverKickoffConflict } })),
     );
 
     fixture.componentInstance.submit(vm);
 
-    expect(vm.errorMessage).toBe('El partido ya inició.');
+    expect(vm.errorMessage).toBe(serverKickoffConflict);
     expect(vm.locked).toBe(true);
     expect(vm.form.disabled).toBe(true);
+  });
+
+  it('falls back to the PREDICTIONS_COPY error messages when the API error carries no message', () => {
+    const conflict = setup([createMatch()]);
+    const conflictVm = conflict.componentInstance.sections()[0].matches[0];
+
+    predictionsServiceMock.registerPrediction.mockReturnValue(throwError(() => ({ status: 409 })));
+    conflict.componentInstance.submit(conflictVm);
+    conflict.detectChanges();
+
+    expect(conflictVm.errorMessage).toBe(PREDICTIONS_COPY.feedback.kickoffConflict);
+    expect(conflictVm.locked).toBe(true);
+    expect(
+      (conflict.nativeElement as HTMLElement).querySelector('[role="alert"]')?.textContent,
+    ).toContain(PREDICTIONS_COPY.feedback.kickoffConflict);
+
+    TestBed.resetTestingModule();
+    const generic = setup([createMatch()]);
+    const genericVm = generic.componentInstance.sections()[0].matches[0];
+
+    predictionsServiceMock.registerPrediction.mockReturnValue(throwError(() => ({})));
+    generic.componentInstance.submit(genericVm);
+    generic.detectChanges();
+
+    expect(genericVm.errorMessage).toBe(PREDICTIONS_COPY.feedback.saveError);
+    expect(
+      (generic.nativeElement as HTMLElement).querySelector('[role="alert"]')?.textContent,
+    ).toContain(PREDICTIONS_COPY.feedback.saveError);
   });
 
   it('exposes isAdmin=true (and shows the Panel Admin link) for an Admin session', () => {
@@ -219,9 +260,9 @@ describe('Predictions', () => {
 
     const tabs = root.querySelectorAll('[role="tab"]');
     expect(tabs.length).toBe(2);
-    expect(tabs[0].textContent).toContain('Grupo A');
+    expect(tabs[0].textContent).toContain(MATCH_GROUP_LABELS.A);
     expect(tabs[0].getAttribute('aria-selected')).toBe('true');
-    expect(tabs[1].textContent).toContain('Grupo B');
+    expect(tabs[1].textContent).toContain(MATCH_GROUP_LABELS.B);
     expect(tabs[1].getAttribute('aria-selected')).toBe('false');
 
     expect(root.querySelectorAll('article').length).toBe(1);
@@ -315,8 +356,8 @@ describe('Predictions', () => {
 
     const badge = root.querySelector('[data-status="earned"]');
     expect(badge).not.toBeNull();
-    expect(badge?.textContent).toContain('+3 pts');
-    expect(root.textContent).toContain('Resultado: 2 - 1');
+    expect(badge?.textContent).toContain(PREDICTIONS_COPY.match.status.points(3));
+    expect(root.textContent).toContain(PREDICTIONS_COPY.match.result(2, 1));
   });
 
   it('marks a saved prediction without result as awaiting, and a missing one as pending', () => {
@@ -334,11 +375,14 @@ describe('Predictions', () => {
     ];
     const root = setup([createMatch()], history).nativeElement as HTMLElement;
     expect(root.querySelector('[data-status="awaiting"]')).not.toBeNull();
+    expect(root.querySelector('[data-status="awaiting"]')?.textContent).toContain(
+      PREDICTIONS_COPY.match.status.awaiting,
+    );
 
     TestBed.resetTestingModule();
     const pendingRoot = setup([createMatch()]).nativeElement as HTMLElement;
     expect(pendingRoot.querySelector('[data-status="pending"]')?.textContent).toContain(
-      'Pendiente',
+      PREDICTIONS_COPY.match.status.pending,
     );
   });
 
@@ -353,9 +397,7 @@ describe('Predictions', () => {
     const inputs = [...root.querySelectorAll('input')] as HTMLInputElement[];
     expect(inputs.length).toBe(2);
     expect(inputs.every((input) => input.disabled)).toBe(true);
-    expect(root.textContent).toContain(
-      'El partido ya inició; no se pueden registrar predicciones.',
-    );
+    expect(root.textContent).toContain(PREDICTIONS_COPY.feedback.locked);
   });
 
   it('shows the saved feedback in the card after a successful submit', () => {
@@ -378,7 +420,7 @@ describe('Predictions', () => {
     fixture.detectChanges();
 
     const feedback = (fixture.nativeElement as HTMLElement).querySelector('.saved-feedback');
-    expect(feedback?.textContent).toContain('Predicción guardada.');
+    expect(feedback?.textContent).toContain(PREDICTIONS_COPY.feedback.saved);
     expect(feedback?.querySelector('svg')).not.toBeNull();
   });
 
@@ -405,6 +447,9 @@ describe('Predictions', () => {
 
     expect(predictionsServiceMock.registerPrediction).toHaveBeenCalledWith('match-1', 2, 0);
 
+    fixture.detectChanges();
+    expect(button.textContent).toContain(PREDICTIONS_COPY.actions.saving);
+
     response$.next({
       id: 'prediction-1',
       userId: 'user-1',
@@ -415,6 +460,65 @@ describe('Predictions', () => {
     } satisfies PredictionDto);
     fixture.detectChanges();
 
-    expect(root.querySelector('.saved-feedback')?.textContent).toContain('Predicción guardada.');
+    expect(root.querySelector('.saved-feedback')?.textContent).toContain(
+      PREDICTIONS_COPY.feedback.saved,
+    );
+  });
+
+  it('renders the PREDICTIONS_COPY texts keeping every accessible label attached to its control', () => {
+    const fixture = setup([createMatch({ homeTeam: 'Colombia', awayTeam: 'Brasil' })]);
+    const root = fixture.nativeElement as HTMLElement;
+
+    const heading = root.querySelector('h1') as HTMLElement;
+    expect(heading.textContent?.trim()).toBe(PREDICTIONS_COPY.title);
+    expect((heading.nextElementSibling as HTMLElement).textContent?.trim()).toBe(
+      PREDICTIONS_COPY.subtitle,
+    );
+
+    const tablist = root.querySelector('[role="tablist"]') as HTMLElement;
+    expect(tablist.getAttribute('aria-label')).toBe(PREDICTIONS_COPY.groups.ariaLabel);
+
+    const tabs = root.querySelectorAll('[role="tab"]');
+    expect(tabs[0].textContent).toContain(MATCH_GROUP_LABELS.A);
+    expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+    expect(tabs[1].textContent).toContain(MATCH_GROUP_LABELS.B);
+    expect(tabs[1].getAttribute('aria-selected')).toBe('false');
+
+    const homeLabel = root.querySelector('label[for="score-home-match-1"]') as HTMLLabelElement;
+    const awayLabel = root.querySelector('label[for="score-away-match-1"]') as HTMLLabelElement;
+    expect(homeLabel.textContent?.trim()).toBe(PREDICTIONS_COPY.match.goalsFor('Colombia'));
+    expect(awayLabel.textContent?.trim()).toBe(PREDICTIONS_COPY.match.goalsFor('Brasil'));
+    expect(homeLabel.getAttribute('for')).toBe(
+      (root.querySelector('#score-home-match-1') as HTMLElement).getAttribute('id'),
+    );
+    expect(awayLabel.getAttribute('for')).toBe(
+      (root.querySelector('#score-away-match-1') as HTMLElement).getAttribute('id'),
+    );
+
+    expect(
+      (root.querySelector('span.uppercase[aria-hidden="true"]') as HTMLElement).textContent?.trim(),
+    ).toBe(PREDICTIONS_COPY.match.vs);
+    expect(
+      (root.querySelector('button[type="submit"]') as HTMLButtonElement).textContent?.trim(),
+    ).toBe(PREDICTIONS_COPY.actions.save);
+    expect((root.querySelector('[data-status="pending"]') as HTMLElement).textContent?.trim()).toBe(
+      PREDICTIONS_COPY.match.status.pending,
+    );
+  });
+
+  it('renders the PREDICTIONS_COPY texts of the loading, error and empty states', () => {
+    const loadingRoot = setup([], [], null, 'pending').nativeElement as HTMLElement;
+    expect(loadingRoot.textContent).toContain(PREDICTIONS_COPY.states.loading);
+
+    TestBed.resetTestingModule();
+    const errorRoot = setup([], [], null, 'error').nativeElement as HTMLElement;
+    expect(errorRoot.querySelector('[role="alert"]')?.textContent).toContain(
+      PREDICTIONS_COPY.states.loadError,
+    );
+
+    TestBed.resetTestingModule();
+    const emptyRoot = setup([createMatch({ id: 'match-b', group: 'B' })])
+      .nativeElement as HTMLElement;
+    expect(emptyRoot.textContent).toContain(PREDICTIONS_COPY.states.empty);
   });
 });

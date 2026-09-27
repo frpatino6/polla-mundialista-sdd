@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { FORGOT_PASSWORD_COPY } from './forgot-password.copy';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink],
@@ -12,6 +13,8 @@ import { AuthService } from '../../core/services/auth.service';
 export class ForgotPassword {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+
+  readonly copy = FORGOT_PASSWORD_COPY;
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -43,7 +46,7 @@ export class ForgotPassword {
         this.submitting.set(false);
         // Solo llega aquí por una falla de red/servidor, nunca por "email no encontrado":
         // ese caso ya es un 200 con el mismo mensaje genérico manejado arriba.
-        this.errorMessage.set('No se pudo enviar la solicitud. Intenta de nuevo.');
+        this.errorMessage.set(FORGOT_PASSWORD_COPY.errors.request);
       },
     });
   }
