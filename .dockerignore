@@ -1,0 +1,11 @@
+backend/**/bin/
+backend/**/obj/
+backend/tests/
+frontend/
+.git/
+.claude/
+.codegraph/
+docs/
+*.user
+.vs/
+.idea/
