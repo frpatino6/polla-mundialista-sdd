@@ -4,7 +4,9 @@ Orden estricto: el harness (Tarea #1) se construye y se verifica en verde **ante
 
 Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripción` / `docs(scope): descripción`, uno o más commits progresivos por tarea.
 
-> **Renumeración 2026-09-27**: se insertó la Tarea #14 (Recuperación de contraseña, hueco detectado al diseñar la nueva pantalla de Login), moviendo Docker Compose a #15. Luego se agregó la Tarea #15 (refactor del copy de interfaz); Docker Compose queda en #16, Render en #17, C4 en #18 y Cierre en #19. Leer este archivo completo antes de asumir el número de una tarea.
+> **Renumeración 2026-09-27**: se insertó la Tarea #14 (Recuperación de contraseña, hueco detectado al diseñar la nueva pantalla de Login), moviendo Docker Compose a #15. Luego se agregó la Tarea #15 (refactor del copy de interfaz); Docker Compose queda en #16, Render en #17, C4 en #18 y Cierre en #19.
+>
+> **Renumeración 2026-09-27 (2)**: la **Tarea #16 (Docker Compose) queda EXCLUIDA/diferida por decisión explícita del usuario** — no bloquea ninguna tarea posterior; se retoma más adelante si hace falta, no forma parte del camino crítico actual. La Tarea #17 (Render) se dividió en dos, porque `design.md` §12 ya especifica el backend y el frontend como **servicios separados** en Render: **#17 — Despliegue del Backend en Render.com** y **#18 (nueva) — Despliegue del Frontend en Render.com**. El diagrama C4 pasa a **#19** y el Cierre de Documentación a **#20**. Leer este archivo completo antes de asumir el número de una tarea — ya se renumeró varias veces.
 
 ---
 
@@ -146,32 +148,43 @@ Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripc
 
 ---
 
-### Tarea #16 — Orquestación Local (Docker Compose)
+### Tarea #16 — Orquestación Local (Docker Compose) — **EXCLUIDA / diferida**
 **Agente sugerido:** `architect`
-**Entregable:** `docker-compose.yml` raíz (postgres, api, frontend), `Dockerfile` por servicio, aplicación automática de migraciones al iniciar `api`.
-**Criterios de aceptación:** `docker-compose up` en un entorno limpio deja la app 100% funcional sin pasos manuales adicionales.
-**Dependencias:** Tareas #4–#15 (backend, Swagger, frontend, recuperación de contraseña y refactor de copy funcionales).
+**Estado:** excluida del alcance actual por decisión explícita del usuario (2026-09-27). No bloquea ninguna tarea posterior — el despliegue a Render (#17/#18) no depende de esta tarea. Queda documentada aquí para retomarla más adelante si se decide.
+**Entregable (cuando se retome):** `docker-compose.yml` raíz (postgres, api, frontend), `Dockerfile` por servicio, aplicación automática de migraciones al iniciar `api`.
+**Criterios de aceptación (cuando se retome):** `docker-compose up` en un entorno limpio deja la app 100% funcional sin pasos manuales adicionales.
+**Dependencias:** ninguna tarea posterior depende de esta.
 
 ---
 
-### Tarea #17 — Despliegue en Render.com
+### Tarea #17 — Despliegue del Backend en Render.com
 **Agente sugerido:** `architect`
-**Entregable:** servicios configurados en Render (API, frontend, PostgreSQL gestionado), variables de entorno y CORS.
-**Criterios de aceptación:** URL pública funcional con el golden path completo (registro → predicción → admin carga resultado → leaderboard actualizado).
-**Dependencias:** Tarea #16.
+**Contexto:** primera mitad del despliegue en la nube descrito en `design.md` §12 — la API y el frontend se despliegan como **dos servicios separados** en Render (no bundleados en una sola tarea), porque el frontend (#18) necesita la URL pública real de esta API para su propia configuración (`environment.prod.ts` / variable de build) y para las pruebas del golden path.
+**Entregable:** `Web Service` (Docker) en Render para `PollaMundialista.Api`, `Dockerfile` de backend (build multi-stage .NET), conexión al **Neon real ya existente** (`polla_mundialista`, decisión explícita del usuario 2026-09-27 — NO se aprovisiona un Postgres nuevo de Render, se reutiliza el mismo Neon que ya usa el entorno local), variables de entorno en Render (`ConnectionStrings__DefaultConnection` con el connection string de Neon, secretos JWT, etc. — nunca committeados), migraciones ya aplicadas (la de `PasswordResetToken` ya corrió contra este mismo Neon en la Tarea #14, no hace falta re-aplicar), CORS configurado para aceptar (todavía sin confirmar el dominio exacto) el origen del frontend que se desplegará en la Tarea #18.
+**Criterios de aceptación:** URL pública de la API responde; `GET /swagger/v1/swagger.json` accesible (o Swagger UI si se decide exponerlo); el flujo completo probado por Postman/curl contra la URL real (`register` → `login` → `predictions` → `admin` resultado → `leaderboard`) funciona igual que en local.
+**Dependencias:** Tareas #1–#9 (backend funcional) y #14 (recuperación de contraseña, backend). **No depende de la Tarea #16** (excluida).
 
 ---
 
-### Tarea #18 — Diagrama de Arquitectura C4 (entregable final)
+### Tarea #18 — Despliegue del Frontend en Render.com
+**Agente sugerido:** `architect` + `frontend-expert`
+**Contexto:** segunda mitad del despliegue en la nube de `design.md` §12. Se ejecuta después de la #17 porque necesita la URL real del backend ya desplegado.
+**Entregable:** `Static Site` (o `Web Service` Docker+Nginx, según se decida al ejecutar) en Render para el build de producción de Angular (`ng build`); configuración de `environment.prod.ts` (o variable de entorno de build) apuntando a la URL real de la API de la Tarea #17; verificación de que las rutas de Angular (SPA con `Router`) no rompen con refresh directo en Render (fallback a `index.html`).
+**Criterios de aceptación:** URL pública del frontend funcional con el golden path completo (registro → login → predicción → admin carga resultado → leaderboard actualizado → recuperación de contraseña) contra la API real desplegada; sin errores de CORS en consola del navegador.
+**Dependencias:** Tarea #17 (backend ya desplegado) y Tareas #10–#15 (todas las features de frontend, incluyendo recuperación de contraseña y refactor de copy).
+
+---
+
+### Tarea #19 — Diagrama de Arquitectura C4 (entregable final)
 **Agente sugerido:** `architect`
 **Entregable:** export de las vistas Mermaid de `design.md` §2 a `docs/architecture/` (PNG/SVG o enlace a Structurizr/draw.io).
-**Criterios de aceptación:** el diagrama refleja el sistema realmente desplegado (contenedores y componentes coinciden con Tarea #17).
-**Dependencias:** Tarea #17.
+**Criterios de aceptación:** el diagrama refleja el sistema realmente desplegado (contenedores y componentes coinciden con Tareas #17 y #18).
+**Dependencias:** Tareas #17 y #18.
 
 ---
 
-### Tarea #19 — Cierre de Documentación (AI_LOG.md, README, `.claude/`)
+### Tarea #20 — Cierre de Documentación (AI_LOG.md, README, `.claude/`)
 **Agente sugerido:** `code-reviewer`
-**Entregable:** `AI_LOG.md` consolidado con los prompts complejos registrados durante todas las tareas; `README.md` con instrucciones de arranque local y enlace de despliegue; `.claude/agents/` y slash command de logging documentados.
+**Entregable:** `AI_LOG.md` consolidado con los prompts complejos registrados durante todas las tareas; `README.md` con instrucciones de arranque local y enlaces de despliegue (backend y frontend); `.claude/agents/` y slash command de logging documentados.
 **Criterios de aceptación:** un tercero puede clonar el repo, seguir el README, y levantar la app localmente sin contexto adicional.
-**Dependencias:** todas las anteriores.
+**Dependencias:** todas las anteriores (excepto la #16, excluida).

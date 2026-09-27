@@ -315,10 +315,9 @@ Conforme a la decisión de alcance ampliado, Task #1 entrega **ambas** capas de 
 ## 12. Estrategia de Despliegue
 
 - **Local**: `docker-compose.yml` en la raíz levanta 3 servicios — `postgres` (con volumen persistente), `api` (build desde `backend/Dockerfile`, espera a `postgres` healthy, aplica migraciones al iniciar), `frontend` (build multi-stage: `ng build` → servido por Nginx).
-- **Cloud (Render.com)**: tres servicios equivalentes —
-  - `Web Service` (Docker) para la API, con variable de entorno `ConnectionStrings__DefaultConnection` apuntando al Postgres gestionado de Render.
-  - `Static Site` o `Web Service` (Docker/Nginx) para el build de Angular.
-  - `PostgreSQL` gestionado (add-on de Render).
+- **Cloud (Render.com)**: dos servicios (backend y frontend), **no tres** — decisión explícita del usuario (2026-09-27, ver `tasks.md` Tarea #17): no se aprovisiona un Postgres gestionado nuevo en Render, se reutiliza el Neon real ya existente (`polla_mundialista`) tanto en local como en producción, para no duplicar/migrar los datos de prueba ya cargados.
+  - `Web Service` (Docker) para la API, con variable de entorno `ConnectionStrings__DefaultConnection` apuntando al **Neon real existente** (mismo Postgres serverless que usa el entorno local).
+  - `Static Site` o `Web Service` (Docker/Nginx) para el build de Angular, apuntando a la URL pública de la API ya desplegada.
   - CORS configurado en la API para aceptar el origen del Static Site desplegado.
 
 ## 13. Decisiones de Arquitectura (resumen ADR)
