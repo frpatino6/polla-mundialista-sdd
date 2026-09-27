@@ -22,6 +22,12 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
+# MatchSeedLoader busca docs/fixtures/matches-seed.json subiendo desde
+# AppContext.BaseDirectory (/app en este contenedor) — EF Core necesita este
+# archivo para construir el modelo (HasData) incluso cuando no hay migraciones
+# pendientes, así que debe existir dentro de la imagen.
+COPY docs/fixtures/matches-seed.json docs/fixtures/matches-seed.json
+
 # Valor por defecto para correr localmente; Render sobrescribe ASPNETCORE_URLS
 # en el dashboard apuntando a http://+:$PORT (Render inyecta PORT en runtime).
 ENV ASPNETCORE_URLS=http://+:8080
