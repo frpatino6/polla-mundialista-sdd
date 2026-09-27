@@ -79,7 +79,15 @@ Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripc
 
 ---
 
-### Tarea #9 — Frontend: Scaffolding + Módulo Auth
+### Tarea #9 — API: Documentación OpenAPI/Swagger
+**Agente sugerido:** `architect`
+**Entregable:** integración de `Swashbuckle.AspNetCore` en `PollaMundialista.Api` — `AddEndpointsApiExplorer()` + `AddSwaggerGen(...)` en el composition root (`Program.cs`) junto a `AddApplicationServices`/`AddInfrastructureServices`; esquema de seguridad Bearer JWT (`AddSecurityDefinition`/`AddSecurityRequirement`) para autorizar desde la UI; `app.UseSwagger()` + `app.UseSwaggerUI()` habilitados solo en `Development` (ver `design.md` §7.1).
+**Criterios de aceptación:** `GET /swagger/v1/swagger.json` retorna un documento OpenAPI válido cubriendo los 8 endpoints del contrato de `design.md` §7; Swagger UI permite autenticar con un JWT (botón "Authorize") y ejecutar un request protegido end-to-end; la suite de integración (`WebApplicationFactory`) sigue en verde.
+**Dependencias:** Tarea #8.
+
+---
+
+### Tarea #10 — Frontend: Scaffolding + Módulo Auth
 **Agente sugerido:** `frontend-expert`
 **Entregable:** workspace Angular (standalone), Tailwind/Angular Material configurado, `core/` (interceptor JWT, guards), pantallas de login/registro.
 **Criterios de aceptación:** login exitoso contra la API real (Docker Compose) redirige a la pantalla de predicciones; rutas protegidas redirigen a login si no hay sesión.
@@ -87,7 +95,7 @@ Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripc
 
 ---
 
-### Tarea #10 — Frontend: Módulo de Predicciones
+### Tarea #11 — Frontend: Módulo de Predicciones
 **Agente sugerido:** `frontend-expert` + `code-reviewer`
 **Entregable:** pantalla con los 12 partidos agrupados por grupo, formulario de predicción por partido, deshabilitado tras kickoff.
 **Criterios de aceptación:** specs Karma/Jest cubriendo el componente de formulario y el guard de horario; verificación manual en navegador (golden path + intento de predecir tras kickoff).
@@ -95,47 +103,47 @@ Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripc
 
 ---
 
-### Tarea #11 — Frontend: Panel Admin
+### Tarea #12 — Frontend: Panel Admin
 **Agente sugerido:** `frontend-expert` + `code-reviewer`
 **Entregable:** pantalla exclusiva de Admin para listar partidos y cargar/corregir resultados.
 **Criterios de aceptación:** solo accesible con rol Admin (guard); feedback visual tras recálculo exitoso.
-**Dependencias:** Tarea #7, Tarea #9.
+**Dependencias:** Tarea #7, Tarea #10.
 
 ---
 
-### Tarea #12 — Frontend: Leaderboard e Historial
+### Tarea #13 — Frontend: Leaderboard e Historial
 **Agente sugerido:** `frontend-expert` + `code-reviewer`
 **Entregable:** tabla de leaderboard global, vista de historial personal.
 **Criterios de aceptación:** el leaderboard se actualiza tras recálculo (sin recargar caché obsoleta); specs de ordenamiento y de desempate.
-**Dependencias:** Tarea #8, Tarea #9.
+**Dependencias:** Tarea #8, Tarea #10.
 
 ---
 
-### Tarea #13 — Orquestación Local (Docker Compose)
+### Tarea #14 — Orquestación Local (Docker Compose)
 **Agente sugerido:** `architect`
 **Entregable:** `docker-compose.yml` raíz (postgres, api, frontend), `Dockerfile` por servicio, aplicación automática de migraciones al iniciar `api`.
 **Criterios de aceptación:** `docker-compose up` en un entorno limpio deja la app 100% funcional sin pasos manuales adicionales.
-**Dependencias:** Tareas #4–#12 (backend y frontend funcionales).
+**Dependencias:** Tareas #4–#13 (backend, Swagger y frontend funcionales).
 
 ---
 
-### Tarea #14 — Despliegue en Render.com
+### Tarea #15 — Despliegue en Render.com
 **Agente sugerido:** `architect`
 **Entregable:** servicios configurados en Render (API, frontend, PostgreSQL gestionado), variables de entorno y CORS.
 **Criterios de aceptación:** URL pública funcional con el golden path completo (registro → predicción → admin carga resultado → leaderboard actualizado).
-**Dependencias:** Tarea #13.
-
----
-
-### Tarea #15 — Diagrama de Arquitectura C4 (entregable final)
-**Agente sugerido:** `architect`
-**Entregable:** export de las vistas Mermaid de `design.md` §2 a `docs/architecture/` (PNG/SVG o enlace a Structurizr/draw.io).
-**Criterios de aceptación:** el diagrama refleja el sistema realmente desplegado (contenedores y componentes coinciden con Tarea #14).
 **Dependencias:** Tarea #14.
 
 ---
 
-### Tarea #16 — Cierre de Documentación (AI_LOG.md, README, `.claude/`)
+### Tarea #16 — Diagrama de Arquitectura C4 (entregable final)
+**Agente sugerido:** `architect`
+**Entregable:** export de las vistas Mermaid de `design.md` §2 a `docs/architecture/` (PNG/SVG o enlace a Structurizr/draw.io).
+**Criterios de aceptación:** el diagrama refleja el sistema realmente desplegado (contenedores y componentes coinciden con Tarea #15).
+**Dependencias:** Tarea #15.
+
+---
+
+### Tarea #17 — Cierre de Documentación (AI_LOG.md, README, `.claude/`)
 **Agente sugerido:** `code-reviewer`
 **Entregable:** `AI_LOG.md` consolidado con los prompts complejos registrados durante todas las tareas; `README.md` con instrucciones de arranque local y enlace de despliegue; `.claude/agents/` y slash command de logging documentados.
 **Criterios de aceptación:** un tercero puede clonar el repo, seguir el README, y levantar la app localmente sin contexto adicional.

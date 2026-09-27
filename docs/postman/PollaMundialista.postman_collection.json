@@ -1,0 +1,293 @@
+{
+  "info": {
+    "name": "Polla Mundialista API",
+    "description": "Colección de pruebas manuales para la API de Polla Mundialista (.NET 10, Auth JWT, PostgreSQL/Neon). Sigue el flujo lógico: Auth -> Matches -> Predictions -> Admin -> Leaderboard. Ejecuta las carpetas en orden la primera vez para poblar las variables de colección (userToken, adminToken, userId).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5282", "type": "string" },
+    { "key": "userToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "matchId", "value": "e32723a0-f845-5e32-2acd-b4006d87b053", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registrar Usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jugador1@pollamundialista.com\",\n  \"password\": \"Jugador123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registra un nuevo usuario con rol `User` (endpoint público). Respuesta esperada: `200 OK` con un `UserDto` (`id`, `email`, `role`). Nota: si ejecutas este request más de una vez, el email ya existirá en la base y recibirás `409 Conflict` — es el comportamiento esperado, no un error de la colección. Corre este request una sola vez antes de 'Login Usuario'."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login exitoso (200)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"userToken\", jsonData.token);",
+                  "    pm.collectionVariables.set(\"userId\", jsonData.userId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jugador1@pollamundialista.com\",\n  \"password\": \"Jugador123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Inicia sesión con el usuario recién registrado. Respuesta esperada: `200 OK` con un `LoginResultDto` (`token`, `userId`, `email`, `role`), o `401 Unauthorized` si las credenciales son incorrectas. El test script guarda automáticamente `token` -> `userToken` y `userId` -> `userId` en las variables de colección para usarlos en los siguientes requests. Corre 'Registrar Usuario' primero si aún no existe el usuario."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login admin exitoso (200)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"adminToken\", jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@pollamundialista.com\",\n  \"password\": \"Admin123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Inicia sesión con el usuario Admin ya sembrado directamente en la base de datos (rol `Admin`, creado por SQL, no por registro público). Respuesta esperada: `200 OK` con un `LoginResultDto`. El test script guarda automáticamente `token` -> `adminToken` en las variables de colección, necesario para las carpetas 'Admin' y para 'Historial de Usuario (Admin)'."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Matches",
+      "item": [
+        {
+          "name": "Listar Partidos",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches"]
+            },
+            "description": "Lista los 12 partidos del mundial (requiere token válido de cualquier rol). Respuesta esperada: `200 OK` con un arreglo de `MatchDto` (`id`, `group`, `homeTeam`, `awayTeam`, `kickoffAt`, `homeScore`, `awayScore`; los scores llegan en `null` hasta que Admin cargue el resultado). Corre 'Login Usuario' primero para poblar `{{userToken}}`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Predictions",
+      "item": [
+        {
+          "name": "Registrar Predicción",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"matchId\": \"{{matchId}}\",\n  \"predictedHomeScore\": 2,\n  \"predictedAwayScore\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions"]
+            },
+            "description": "Registra la predicción del usuario autenticado para el partido Argentina vs Brasil (`{{matchId}}`). El `userId` se extrae del token, NO se envía en el body. Respuesta esperada: `200 OK` con un `PredictionDto` (`id`, `userId`, `matchId`, `predictedHomeScore`, `predictedAwayScore`, `pointsAwarded` en 0), o `409 Conflict` si el partido ya inició. Corre 'Login Usuario' primero para poblar `{{userToken}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Predicción (mismo partido)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"matchId\": \"{{matchId}}\",\n  \"predictedHomeScore\": 1,\n  \"predictedAwayScore\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions"]
+            },
+            "description": "Envía un marcador distinto (1-1) para el MISMO `{{matchId}}` con el mismo usuario, para verificar que el endpoint hace upsert (actualiza la predicción existente en vez de crear una nueva). Respuesta esperada: `200 OK` con el mismo `id` de predicción que en 'Registrar Predicción' pero con `predictedHomeScore`/`predictedAwayScore` actualizados. Corre 'Registrar Predicción' primero."
+          },
+          "response": []
+        },
+        {
+          "name": "Mi Historial",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions", "me"]
+            },
+            "description": "Devuelve el historial de predicciones del usuario autenticado (extraído del token). Respuesta esperada: `200 OK` con un arreglo de `PredictionHistoryEntryDto` (`matchId`, `homeTeam`, `awayTeam`, `predictedHomeScore`, `predictedAwayScore`, `actualHomeScore`, `actualAwayScore`, `pointsAwarded`). Corre 'Login Usuario' y al menos una predicción antes."
+          },
+          "response": []
+        },
+        {
+          "name": "Historial de Usuario (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions/user/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions", "user", "{{userId}}"]
+            },
+            "description": "Devuelve el historial de predicciones de cualquier usuario indicado por `{{userId}}` (poblado automáticamente al correr 'Login Usuario'). Requiere rol `Admin` — responde `403 Forbidden` si el token no es de Admin. Respuesta esperada: `200 OK` con un arreglo de `PredictionHistoryEntryDto`. Corre 'Login Usuario' (para poblar `userId`) y 'Login Admin' (para poblar `adminToken`) antes."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Cargar Resultado de Partido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"homeScore\": 2,\n  \"awayScore\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/matches/{{matchId}}/result",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "matches", "{{matchId}}", "result"]
+            },
+            "description": "Carga el resultado final (2-1) del partido `{{matchId}}` (Argentina vs Brasil). Requiere rol `Admin`. Al guardar el resultado se dispara internamente el recálculo de puntos de todas las predicciones asociadas a ese partido (revisa 'Mi Historial' después para ver `pointsAwarded` actualizado). Respuesta esperada: `200 OK` con el `MatchDto` actualizado (`homeScore`/`awayScore` ya no nulos). Corre 'Login Admin' primero para poblar `{{adminToken}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Intentar Cargar Resultado sin ser Admin",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"homeScore\": 2,\n  \"awayScore\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/matches/{{matchId}}/result",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "matches", "{{matchId}}", "result"]
+            },
+            "description": "Mismo endpoint que 'Cargar Resultado de Partido' pero usando el token de un usuario `User` (`{{userToken}}`) en vez de Admin. Respuesta esperada: `403 Forbidden` — sirve para verificar manualmente que el control de roles por `[Authorize(Roles = \"Admin\")]` funciona correctamente. Corre 'Login Usuario' primero para poblar `{{userToken}}`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "item": [
+        {
+          "name": "Ver Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leaderboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "leaderboard"]
+            },
+            "description": "Devuelve la tabla de posiciones de todos los jugadores (requiere token válido de cualquier rol). Respuesta esperada: `200 OK` con un arreglo de `LeaderboardEntryDto` (`userId`, `email`, `totalPoints`, `exactPredictions`). Para ver puntos distintos de cero, corre antes 'Registrar Predicción' y 'Cargar Resultado de Partido'."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

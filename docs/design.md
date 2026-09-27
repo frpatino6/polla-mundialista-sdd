@@ -200,6 +200,13 @@ Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Predi
 
 **Criterio de orden y desempate del leaderboard** (`docs/spec.md` §6.4, definido aquí): 1) `TotalPoints` descendente; 2) a igualdad de puntos, cantidad de predicciones con marcador exacto (`PointsAwarded == 3`) descendente; 3) a igualdad de ambos, `Email` ascendente (orden alfabético), como desempate final determinístico. `LeaderboardEntryDto` expone `Email` y `ExactPredictions` además de `UserId`/`TotalPoints` para soportar este orden y mostrarlo en la UI.
 
+### 7.1 Documentación OpenAPI/Swagger
+
+- **Paquete**: `Swashbuckle.AspNetCore` (`AddEndpointsApiExplorer()` + `AddSwaggerGen(...)`) registrado en el composition root de `Api.Program.cs`, junto a `AddApplicationServices`/`AddInfrastructureServices`.
+- **Seguridad**: dado que la API ya protege endpoints con JWT Bearer (§4.1, Tarea #5), `AddSwaggerGen` define un esquema de seguridad `Http`/`Bearer` (`AddSecurityDefinition` + `AddSecurityRequirement` global), habilitando el botón "Authorize" en Swagger UI para probar endpoints protegidos sin herramientas externas.
+- **Exposición**: `app.UseSwagger()` + `app.UseSwaggerUI()` se registran solo bajo `if (app.Environment.IsDevelopment())` (o una config flag equivalente) — no se expone el explorador interactivo en producción/Render, aunque el documento JSON puede habilitarse para integraciones externas (ej. importar la colección en el MCP de Postman).
+- **Alcance**: cubre los 8 endpoints del contrato de la tabla de §7 tal cual quedan definidos por los Controllers existentes (`AuthController`, `PredictionsController`, `AdminController`, `LeaderboardController`); no se generan clientes ni se versiona el documento — fuera de alcance de la prueba técnica.
+
 ## 8. Algoritmo de Puntuación (diseño técnico)
 
 Vive en `Domain.Services.ScoringEngine`, **puro** (sin I/O), para ser 100% testeable en el harness:
@@ -273,3 +280,4 @@ Conforme a la decisión de alcance ampliado, Task #1 entrega **ambas** capas de 
 | 6 | `AI_LOG.md` alimentado por slash command manual | Git hook automático | Evita ruido de prompts triviales; el desarrollador decide qué es "complejo" |
 | 7 | Despliegue en Render.com | Azure / AWS | Setup más rápido y de bajo costo para una demo de prueba técnica |
 | 8 | Comunicación API↔Application vía patrón Mediator con el paquete `Mediator` (martinothamar) | MediatR clásico / llamada directa a servicios de Application | Desacopla Controllers de la lógica de negocio, sin el costo de reflection en runtime y sin el modelo de licenciamiento comercial de MediatR v13+ |
+| 9 | `Swashbuckle.AspNetCore` para documentación OpenAPI/Swagger | `Microsoft.AspNetCore.OpenApi` nativo (.NET 9/10) + UI aparte (ej. Scalar) | Paquete único, maduro, con generación de spec + UI interactiva y soporte directo para el esquema de seguridad Bearer JWT ya usado por la API |
