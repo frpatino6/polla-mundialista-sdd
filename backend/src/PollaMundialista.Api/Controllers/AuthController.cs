@@ -33,8 +33,30 @@ public class AuthController : ControllerBase
 
         return result.ToActionResult();
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken ct)
+    {
+        var command = new ForgotPasswordCommand(request.Email);
+        var result = await _mediator.Send(command, ct);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken ct)
+    {
+        var command = new ResetPasswordCommand(request.Token, request.NewPassword);
+        var result = await _mediator.Send(command, ct);
+
+        return result.ToActionResult();
+    }
 }
 
 public record RegisterRequest(string Email, string Password);
 
 public record LoginRequest(string Email, string Password);
+
+public record ForgotPasswordRequest(string Email);
+
+public record ResetPasswordRequest(string Token, string NewPassword);

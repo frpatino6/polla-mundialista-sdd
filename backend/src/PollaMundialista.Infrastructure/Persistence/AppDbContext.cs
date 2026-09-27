@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<Prediction> Predictions => Set<Prediction>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

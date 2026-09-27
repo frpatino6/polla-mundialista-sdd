@@ -9,7 +9,8 @@
     { "key": "userToken", "value": "", "type": "string" },
     { "key": "adminToken", "value": "", "type": "string" },
     { "key": "userId", "value": "", "type": "string" },
-    { "key": "matchId", "value": "e32723a0-f845-5e32-2acd-b4006d87b053", "type": "string" }
+    { "key": "matchId", "value": "e32723a0-f845-5e32-2acd-b4006d87b053", "type": "string" },
+    { "key": "resetToken", "value": "", "type": "string" }
   ],
   "item": [
     {
@@ -112,6 +113,48 @@
               "path": ["api", "auth", "login"]
             },
             "description": "Inicia sesión con el usuario Admin ya sembrado directamente en la base de datos (rol `Admin`, creado por SQL, no por registro público). Respuesta esperada: `200 OK` con un `LoginResultDto`. El test script guarda automáticamente `token` -> `adminToken` en las variables de colección, necesario para las carpetas 'Admin' y para 'Historial de Usuario (Admin)'."
+          },
+          "response": []
+        },
+        {
+          "name": "Olvidé mi Contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jugador1@pollamundialista.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "forgot-password"]
+            },
+            "description": "Solicita un token de reseteo de contraseña (endpoint público). Respuesta esperada: siempre `200 OK` con el mismo mensaje genérico (`{ \"message\": \"Si el correo está registrado, se enviará un enlace de recuperación.\" }`), exista o no el email — es anti-enumeración intencional, no un bug de la colección. El token real NUNCA viaja en este body; en entorno `Development` la API solo lo expone en sus logs de consola (`NoOpEmailSender`). Copia ese token del log del proceso `dotnet run` y pégalo manualmente en la variable de colección `resetToken` antes de correr 'Resetear Contraseña'."
+          },
+          "response": []
+        },
+        {
+          "name": "Resetear Contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"NuevoPass123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reset-password"]
+            },
+            "description": "Consume el token de reseteo y fija la nueva contraseña (endpoint público). Requiere haber corrido antes 'Olvidé mi Contraseña' y haber pegado el token de los logs en la variable de colección `resetToken`. Respuesta esperada: `200 OK` con `{ \"message\": \"Contraseña actualizada correctamente.\" }`. Si el token ya expiró (1 hora), ya fue consumido, o es inválido, responde `400 Bad Request` con el mensaje de dominio correspondiente. Tras un reseteo exitoso, 'Login Usuario' debe usar `NuevoPass123!` en vez de la contraseña original."
           },
           "response": []
         }

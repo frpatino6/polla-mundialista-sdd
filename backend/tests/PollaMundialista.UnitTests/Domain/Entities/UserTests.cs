@@ -36,4 +36,30 @@ public class UserTests
     {
         Assert.Throws<DomainException>(() => new User(Guid.NewGuid(), "user@example.com", "", UserRole.User));
     }
+
+    [Fact]
+    public void ChangePassword_ValidHash_UpdatesPasswordHash()
+    {
+        var user = new User(Guid.NewGuid(), "user@example.com", "old-hash", UserRole.User);
+
+        user.ChangePassword("new-hash");
+
+        Assert.Equal("new-hash", user.PasswordHash);
+    }
+
+    [Fact]
+    public void ChangePassword_EmptyHash_ThrowsDomainException()
+    {
+        var user = new User(Guid.NewGuid(), "user@example.com", "old-hash", UserRole.User);
+
+        Assert.Throws<DomainException>(() => user.ChangePassword(""));
+    }
+
+    [Fact]
+    public void ChangePassword_WhitespaceHash_ThrowsDomainException()
+    {
+        var user = new User(Guid.NewGuid(), "user@example.com", "old-hash", UserRole.User);
+
+        Assert.Throws<DomainException>(() => user.ChangePassword("   "));
+    }
 }

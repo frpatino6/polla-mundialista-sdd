@@ -19,10 +19,12 @@ public static class DependencyInjection
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IPredictionRepository, PredictionRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IEmailSender, NoOpEmailSender>();
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
 
         return services;

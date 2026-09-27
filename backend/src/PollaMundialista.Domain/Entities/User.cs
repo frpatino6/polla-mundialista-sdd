@@ -23,4 +23,12 @@ public class User
         PasswordHash = passwordHash;
         Role = role;
     }
+
+    public void ChangePassword(string newPasswordHash)
+    {
+        if (string.IsNullOrWhiteSpace(newPasswordHash))
+            throw new DomainException(DomainErrorMessages.PasswordHashRequired);
+
+        PasswordHash = newPasswordHash;
+    }
 }

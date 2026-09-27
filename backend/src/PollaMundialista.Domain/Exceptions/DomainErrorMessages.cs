@@ -12,4 +12,6 @@ public static class DomainErrorMessages
     public const string AwayScoreCannotBeNegative = "AwayScore no puede ser negativo.";
     public const string PredictionAfterKickoffNotAllowed = "No se puede registrar una predicción después del kickoff del partido.";
     public const string PredictionChangeAfterKickoffNotAllowed = "No se puede modificar una predicción después del kickoff del partido.";
+    public const string TokenHashRequired = "TokenHash no puede estar vacío.";
+    public const string PasswordResetTokenAlreadyConsumed = "El token de reseteo ya fue utilizado.";
 }

@@ -225,13 +225,10 @@
             Recordarme
           </label>
 
-          <!-- Enlace deshabilitado a propósito: /forgot-password no existe todavía (docs/design.md §7.2,
-               Tarea #14). Sin href y sin routerLink para no navegar a una ruta inexistente. -->
-          <span
-            title="Disponible próximamente"
-            aria-disabled="true"
-            class="cursor-not-allowed text-sm text-slate-400 select-none"
-            >¿Olvidaste tu contraseña?</span
+          <a
+            routerLink="/forgot-password"
+            class="rounded text-sm text-slate-400 transition-colors hover:text-emerald-400 focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
+            >¿Olvidaste tu contraseña?</a
           >
         </div>
 

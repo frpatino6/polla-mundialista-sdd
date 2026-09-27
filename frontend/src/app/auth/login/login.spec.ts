@@ -17,7 +17,16 @@ describe('Login', () => {
 
     await TestBed.configureTestingModule({
       imports: [Login],
-      providers: [provideRouter([]), { provide: AuthService, useValue: authServiceSpy }],
+      providers: [
+        provideRouter([
+          {
+            path: 'forgot-password',
+            loadComponent: () =>
+              import('../forgot-password/forgot-password').then((m) => m.ForgotPassword),
+          },
+        ]),
+        { provide: AuthService, useValue: authServiceSpy },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Login);
@@ -107,21 +116,25 @@ describe('Login', () => {
     expect(button.querySelector('svg.animate-spin')).toBeTruthy();
   });
 
-  it('renders the forgot-password entry disabled and without navigating', () => {
-    const link = host().querySelector('[aria-disabled="true"]') as HTMLElement;
+  it('the forgot-password link is enabled and navigates to /forgot-password', async () => {
+    const link = host().querySelector('a[routerLink="/forgot-password"]') as HTMLAnchorElement;
 
+    expect(link).toBeTruthy();
     expect(link.textContent).toContain('¿Olvidaste tu contraseña?');
-    expect(link.getAttribute('title')).toBe('Disponible próximamente');
-    expect(link.hasAttribute('href')).toBe(false);
-    expect(
-      host().querySelector('a[href*="forgot-password"], a[href*="reset-password"]'),
-    ).toBeNull();
+    expect(link.hasAttribute('aria-disabled')).toBe(false);
+    expect(link.getAttribute('title')).toBeNull();
 
     link.click();
     fixture.detectChanges();
 
-    expect(router.navigate).not.toHaveBeenCalled();
-    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalled();
+    const navigatedUrl = (router.navigateByUrl as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(String(navigatedUrl)).toBe('/forgot-password');
+
+    // Deja resolver la navegación real (aunque no exista la ruta registrada en este
+    // TestBed) dentro del propio test, para no dejar una promesa pendiente que se
+    // resuelva luego de destruirse el injector de este fixture.
+    await fixture.whenStable();
   });
 
   it('toggles the rememberMe signal when its checkbox is clicked', () => {

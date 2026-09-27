@@ -26,3 +26,17 @@ export interface Session {
   email: string;
   role: UserRole;
 }
+
+/**
+ * Espejo de PollaMundialista.Application.Dtos.ForgotPasswordResultDto.
+ * Siempre trae el mismo mensaje genérico, exista o no el email (anti-enumeración,
+ * docs/design.md §7.2): el status y el body son indistinguibles en ambos casos.
+ */
+export interface ForgotPasswordResultDto {
+  message: string;
+}
+
+/** Espejo de PollaMundialista.Application.Dtos.ResetPasswordResultDto */
+export interface ResetPasswordResultDto {
+  message: string;
+}

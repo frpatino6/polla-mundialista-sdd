@@ -1,7 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { LoginResultDto, Session, UserDto, UserRole } from '../models/auth.models';
+import {
+  ForgotPasswordResultDto,
+  LoginResultDto,
+  ResetPasswordResultDto,
+  Session,
+  UserDto,
+  UserRole,
+} from '../models/auth.models';
 import { ApiService } from './api.service';
 
 const SESSION_STORAGE_KEY = 'polla_session';
@@ -44,6 +51,30 @@ export class AuthService extends ApiService {
     return this.http
       .post<LoginResultDto>(`${this.baseUrl}/api/auth/login`, { email, password })
       .pipe(tap((result) => this.saveSession(result)));
+  }
+
+  /**
+   * Solicita el envío del enlace de recuperación. El backend responde siempre
+   * con el mismo 200 y el mismo mensaje genérico exista o no el email
+   * (anti-enumeración, docs/design.md §7.2): este método no debe agregar
+   * ninguna lógica que distinga ambos casos.
+   */
+  forgotPassword(email: string): Observable<ForgotPasswordResultDto> {
+    return this.http.post<ForgotPasswordResultDto>(`${this.baseUrl}/api/auth/forgot-password`, {
+      email,
+    });
+  }
+
+  /**
+   * Consume el token de reseteo y fija la nueva contraseña. El backend devuelve
+   * 400 con un mensaje de dominio (token inválido / expirado / ya consumido)
+   * que el componente muestra tal cual, sin reinterpretarlo.
+   */
+  resetPassword(token: string, newPassword: string): Observable<ResetPasswordResultDto> {
+    return this.http.post<ResetPasswordResultDto>(`${this.baseUrl}/api/auth/reset-password`, {
+      token,
+      newPassword,
+    });
   }
 
   /**

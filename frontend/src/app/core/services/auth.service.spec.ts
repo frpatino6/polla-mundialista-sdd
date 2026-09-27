@@ -3,7 +3,13 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { LoginResultDto, Session, UserDto } from '../models/auth.models';
+import {
+  ForgotPasswordResultDto,
+  LoginResultDto,
+  ResetPasswordResultDto,
+  Session,
+  UserDto,
+} from '../models/auth.models';
 import { AuthService } from './auth.service';
 
 const SESSION_STORAGE_KEY = 'polla_session';
@@ -104,6 +110,38 @@ describe('AuthService', () => {
     expect(service.currentUser).toBeNull();
     expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+  });
+
+  it('forgotPassword() POSTs the email and returns the generic message unchanged', () => {
+    const result: ForgotPasswordResultDto = {
+      message: 'Si el correo está registrado, se enviará un enlace de recuperación.',
+    };
+
+    service.forgotPassword('user@example.com').subscribe((res) => {
+      expect(res).toEqual(result);
+    });
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/api/auth/forgot-password`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ email: 'user@example.com' });
+    req.flush(result);
+
+    expect(service.isAuthenticated).toBe(false);
+  });
+
+  it('resetPassword() POSTs the token and new password, and does not touch session state', () => {
+    const result: ResetPasswordResultDto = { message: 'Contraseña actualizada correctamente.' };
+
+    service.resetPassword('raw-token', 'newSecret123').subscribe((res) => {
+      expect(res).toEqual(result);
+    });
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/api/auth/reset-password`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ token: 'raw-token', newPassword: 'newSecret123' });
+    req.flush(result);
+
+    expect(service.isAuthenticated).toBe(false);
   });
 
   it('restores an existing session from localStorage on construction', () => {
