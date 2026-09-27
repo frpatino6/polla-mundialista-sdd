@@ -13,3 +13,6 @@ npm-debug.log*
 .DS_Store
 .vs/
 .idea/
+
+## Claude Code (local secrets/overrides — nunca commitear)
+.claude/settings.local.json
