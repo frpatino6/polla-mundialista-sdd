@@ -4,6 +4,8 @@ Orden estricto: el harness (Tarea #1) se construye y se verifica en verde **ante
 
 Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripción` / `docs(scope): descripción`, uno o más commits progresivos por tarea.
 
+> **Renumeración 2026-09-27**: se insertó la Tarea #14 (Recuperación de contraseña, hueco detectado al diseñar la nueva pantalla de Login). Docker Compose pasó de #14 a #15, Render de #15 a #16, C4 de #16 a #17 y Cierre de #17 a #18. Leer este archivo completo antes de asumir el número de una tarea.
+
 ---
 
 ### Tarea #1 — Test Harness: Seeder + Algoritmo de Puntuación (unit + integración)
@@ -119,31 +121,47 @@ Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripc
 
 ---
 
-### Tarea #14 — Orquestación Local (Docker Compose)
+### Tarea #14 — Recuperación de contraseña (backend + frontend)
+**Agente sugerido:** `architect` (backend) + `frontend-expert` (pantallas)
+**Contexto:** hueco funcional detectado durante el refactor visual de la pantalla de Login (ver `design.md` §5.1 y §7.2). El enlace "¿Olvidaste tu contraseña?" quedó en la UI sin ningún endpoint que lo respaldara. Diseño completo y decisiones de seguridad ya están escritos en `design.md` §7.2 — esta tarea es su ejecución, no su diseño.
+**Entregable:**
+- Backend: `PasswordResetToken` (Domain: entidad + invariantes de expiración/uso único; Infrastructure: `IEntityTypeConfiguration` + migración), `IEmailSender` en `Application` con implementación no-op por defecto, `ForgotPasswordCommand`/`ResetPasswordCommand` + Handlers vía Mediator, y `AuthController` Desbloqueando los dos endpoints públicos (`POST /api/auth/forgot-password`, `POST /api/auth/reset-password`).
+- Frontend: rutas públicas `/forgot-password` y `/reset-password` en la feature `auth/`, con el mismo lenguaje visual de `design.md` §5.1, y el enlace de Login dejando de estar deshabilitado.
+- Colección de Postman sincronizada: los dos endpoints nuevos se agregan a `docs/postman/PollaMundialista.postman_collection.json` **y** a la colección real del workspace de Postman vía MCP (regla de `CLAUDE.md`).
+**Criterios de aceptación:**
+- Test de integración que verifica la **anti-enumeración**: `forgot-password` con un email existente y con uno inexistente devuelven status y cuerpo indistinguibles.
+- Test de integración: token expirado, token ya consumido y token inválido devuelven `400` con mensaje de dominio; tras un reseteo válido, la contraseña nueva funciona en `POST /api/auth/login` y la anterior deja de funcionar.
+- El token se persiste hasheado: un test verifica que la columna `TokenHash` de la BD no contiene el token en claro.
+- Specs Angular cubren el envío del formulario y los tres estados de error; verificación manual en navegador del flujo completo en modo `Development` (donde el token se expone/loguea).
+**Dependencias:** Tarea #5 (API de Auth), Tarea #10 (pantallas de Auth). Debe cerrarse antes de Tarea #15/#16 para que el build desplegado incluya el flujo completo.
+
+---
+
+### Tarea #15 — Orquestación Local (Docker Compose)
 **Agente sugerido:** `architect`
 **Entregable:** `docker-compose.yml` raíz (postgres, api, frontend), `Dockerfile` por servicio, aplicación automática de migraciones al iniciar `api`.
 **Criterios de aceptación:** `docker-compose up` en un entorno limpio deja la app 100% funcional sin pasos manuales adicionales.
-**Dependencias:** Tareas #4–#13 (backend, Swagger y frontend funcionales).
+**Dependencias:** Tareas #4–#14 (backend, Swagger, frontend y recuperación de contraseña funcionales).
 
 ---
 
-### Tarea #15 — Despliegue en Render.com
+### Tarea #16 — Despliegue en Render.com
 **Agente sugerido:** `architect`
 **Entregable:** servicios configurados en Render (API, frontend, PostgreSQL gestionado), variables de entorno y CORS.
 **Criterios de aceptación:** URL pública funcional con el golden path completo (registro → predicción → admin carga resultado → leaderboard actualizado).
-**Dependencias:** Tarea #14.
-
----
-
-### Tarea #16 — Diagrama de Arquitectura C4 (entregable final)
-**Agente sugerido:** `architect`
-**Entregable:** export de las vistas Mermaid de `design.md` §2 a `docs/architecture/` (PNG/SVG o enlace a Structurizr/draw.io).
-**Criterios de aceptación:** el diagrama refleja el sistema realmente desplegado (contenedores y componentes coinciden con Tarea #15).
 **Dependencias:** Tarea #15.
 
 ---
 
-### Tarea #17 — Cierre de Documentación (AI_LOG.md, README, `.claude/`)
+### Tarea #17 — Diagrama de Arquitectura C4 (entregable final)
+**Agente sugerido:** `architect`
+**Entregable:** export de las vistas Mermaid de `design.md` §2 a `docs/architecture/` (PNG/SVG o enlace a Structurizr/draw.io).
+**Criterios de aceptación:** el diagrama refleja el sistema realmente desplegado (contenedores y componentes coinciden con Tarea #16).
+**Dependencias:** Tarea #16.
+
+---
+
+### Tarea #18 — Cierre de Documentación (AI_LOG.md, README, `.claude/`)
 **Agente sugerido:** `code-reviewer`
 **Entregable:** `AI_LOG.md` consolidado con los prompts complejos registrados durante todas las tareas; `README.md` con instrucciones de arranque local y enlace de despliegue; `.claude/agents/` y slash command de logging documentados.
 **Criterios de aceptación:** un tercero puede clonar el repo, seguir el README, y levantar la app localmente sin contexto adicional.

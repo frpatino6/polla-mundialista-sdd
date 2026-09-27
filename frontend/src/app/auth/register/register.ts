@@ -16,11 +16,16 @@ export class Register {
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly passwordVisible = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
+
+  togglePasswordVisibility(): void {
+    this.passwordVisible.update((visible) => !visible);
+  }
 
   submit(): void {
     if (this.form.invalid) {

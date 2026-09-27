@@ -16,11 +16,29 @@ export class Login {
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly passwordVisible = signal(false);
+
+  /**
+   * "Recordarme" es únicamente visual: en el contrato de API vigente (docs/design.md §7)
+   * no existe refresh token, el JWT expira y la sesión vive en localStorage (SESSION_STORAGE_KEY
+   * en AuthService). Marcar la casilla no extiende ni renueva nada y no se envía a la API.
+   * Se cablea recién cuando exista un mecanismo real de refresco; hoy persistir la preferencia
+   * sin efecto sería un beacon de seguridad.
+   */
+  readonly rememberMe = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
+
+  togglePasswordVisibility(): void {
+    this.passwordVisible.update((visible) => !visible);
+  }
+
+  toggleRememberMe(event: Event): void {
+    this.rememberMe.set((event.target as HTMLInputElement).checked);
+  }
 
   submit(): void {
     if (this.form.invalid) {

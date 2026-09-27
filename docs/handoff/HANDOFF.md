@@ -2,6 +2,67 @@
 
 ---
 
+## Handoff: 2026-09-27 (2) — Frontend completo (Tareas #10-13) y commiteado
+
+### Current Task State
+
+**Todo el frontend planeado está completo, verificado y COMMITEADO** (commit `3b2e972`, "feat: add admin panel for match results management" — el mensaje solo menciona Admin pero el commit real incluye también Leaderboard, Historial y el fix de logout). `git status` está limpio, no hay nada pendiente de commitear. Backend (#1-9) y Frontend (#10-13) completos: **85/85 tests backend, 48/48 tests frontend**, ambos verificados de forma independiente (no solo por reporte de subagente) incluyendo navegación real en Chrome. Próximo paso: Tarea #14 (Docker Compose) — todavía no empezada.
+
+### Key Decisions (acumulado, ver también la entrada anterior de este log)
+
+- Todo lo de la entrada anterior sigue vigente (stack, Neon, Tailwind, BehaviorSubject, Vitest, puerto 4200 ocupado, reglas de `AI_LOG.md`/`CLAUDE.md`/Postman, patrón de delegar+verificar).
+- **Bug real encontrado y arreglado durante la Tarea #11**: los 4 Controllers (`Auth`, `Predictions`, `Admin`, `Leaderboard`) serializaban enums (`role`, `group`) como número en vez de string, porque `ConfigureHttpJsonOptions` (Minimal API) no aplica a `AddControllers()` (MVC) — son configuraciones separadas en ASP.NET Core. Esto rompía silenciosamente `adminGuard` en el frontend. Arreglado en `Program.cs` con `.AddJsonOptions(JsonStringEnumConverter)` en `AddControllers()`, y corregidos los tests que sin querer dependían del bug (`TestAuthHelper.JsonOptions` ahora centralizado).
+- **Bug real encontrado y arreglado durante la Tarea #13**: `AuthService.logout()` limpiaba la sesión pero no navegaba — el usuario quedaba "colgado" en la pantalla actual porque los guards de Angular solo corren al activar una ruta nueva. Arreglado inyectando `Router` en `AuthService` y llamando `router.navigateByUrl('/login')` dentro de `logout()` (fix centralizado, no hubo que tocar cada componente).
+- **Angular 22 es zoneless** (sin zone.js) — mutar campos planos de objetos dentro de un array respaldado por un signal NO dispara detección de cambios tras una respuesta HTTP async; hay que reemplazar la referencia del array/objeto completo (patrón `notifyChanged()`/`notifyGroupsChanged()` usado en `predictions.ts` y `admin-matches.ts`). Los tests unitarios NO detectan este bug (TestBed fuerza `detectChanges()`), solo la verificación manual en navegador real lo revela.
+- **Leaderboard sin caché**: `LeaderboardService.getLeaderboard()` es un `http.get` plano sin `shareReplay`, para que cada visita a `/leaderboard` traiga datos frescos tras un recálculo de Admin — verificado en vivo (guardé un resultado como Admin, volví a `/leaderboard` como User, el ranking cambió sin ningún paso extra).
+- El frontend NO reordena el leaderboard client-side — confía en el orden que ya aplica el backend (puntos desc → exactos desc → email asc, `design.md` §7).
+
+### Modified/Created Files (todo YA commiteado en `3b2e972`)
+
+- `backend/src/PollaMundialista.Api/Program.cs`, varios archivos de `backend/tests/PollaMundialista.IntegrationTests/` (fix de enums, de la entrada anterior de este log — commiteado en un commit previo, verificar con `git log` si hace falta el hash exacto).
+- `frontend/src/app/admin/admin-matches/` (Tarea #12, completo).
+- `frontend/src/app/leaderboard/leaderboard/` (Tarea #13).
+- `frontend/src/app/predictions/history/` (Tarea #13, historial personal).
+- `frontend/src/app/core/models/leaderboard.models.ts`, `frontend/src/app/core/services/{admin.service.ts, leaderboard.service.ts}`.
+- `frontend/src/app/core/services/auth.service.ts` (fix de logout — inyecta `Router`, navega a `/login`).
+- `frontend/src/app/app.routes.ts` (rutas `/admin`, `/leaderboard`, `/history`, todas con `authGuard`/`adminGuard` según corresponda).
+- `frontend/src/app/predictions/predictions/predictions.html` (nav con links a Panel Admin condicional + Leaderboard/Mi Historial siempre visibles).
+
+### Blockers / Open Questions
+
+- Ninguno técnico. Todo verde y commiteado.
+- Como siempre: **releer `docs/tasks.md` antes de asumir el número/alcance de la próxima tarea** — ya se renumeró una vez en esta sesión.
+
+### Next Steps
+
+1. **Tarea #14 — Orquestación Local (Docker Compose)**: `docker-compose.yml` en la raíz (postgres, api, frontend), `Dockerfile` por servicio, migraciones automáticas al iniciar `api`. Ojo: el usuario decidió explícitamente NO usar Docker en esta máquina (usa Neon remoto) — confirmar con el usuario el alcance real de esta tarea antes de asumir que hay que levantar contenedores localmente para verificarla; puede que solo haga falta que el `docker-compose.yml`/Dockerfiles queden bien escritos y documentados, sin verificación local con Docker real.
+2. **Tarea #15 — Despliegue en Render.com**.
+3. **Tarea #16 — Diagrama de Arquitectura C4** (ya hay fuente Mermaid en `docs/design.md` §2, falta exportarlo/generarlo como entregable final).
+4. **Tarea #17 — Cierre de Documentación** (`AI_LOG.md` — recordar que el usuario lo llena manualmente, no tocarlo de más —, `README.md`, `.claude/`).
+
+### Critical Context
+
+- Todo lo de la entrada anterior de este log sigue aplicando (releer si hace falta contexto de Tareas #1-11).
+- El repo tiene git+remoto y el usuario commitea él mismo cuando se lo confirmas — sigue sin inicializar/pushear nada sin pedido explícito.
+- Credenciales de prueba ya sembradas en Neon: Admin real `admin@pollamundialista.com` / `Admin123!`. Hay además varios usuarios de prueba creados durante las verificaciones manuales de las Tareas #11-13 (emails tipo `*-test-*@test.com`/`@example.com`) con predicciones y resultados reales cargados — el leaderboard real en Neon ya NO está vacío, tiene datos de prueba mezclados. Si se necesita un estado "limpio" para una demo, avisar al usuario antes de borrar nada de la base real.
+
+### Model Summary
+
+- Backend (.NET 10, Clean Architecture, Mediator, JWT, EF Core+Neon) y Frontend (Angular 22 standalone + Tailwind) completos: Tareas #1-13 de `docs/tasks.md`, TODO commiteado (`3b2e972` es el HEAD actual), `git status` limpio.
+- 85/85 tests backend, 48/48 tests frontend — ambos verificados de forma independiente por el orquestador (no solo confiando en reportes de subagentes), incluyendo navegación real en Chrome para cada pantalla (login, predicciones, admin, leaderboard, historial).
+- Dos bugs reales encontrados y arreglados durante la verificación manual (no los detectaron los tests automatizados): (1) enums serializados como número en los Controllers, rompía `adminGuard`; (2) `logout()` no redirigía a `/login`. Ambos root-caused y corregidos correctamente, no parcheados superficialmente.
+- Patrón operativo consolidado: delegar código a subagentes vía `Agent` tool, verificar SIEMPRE de forma independiente (build/test propios, lectura de código clave, navegador real para UI vía `claude-in-chrome`, puerto 4300 para `ng serve` — el 4200 está ocupado por una app ajena en esta máquina, nunca tocarla).
+- CodeGraph (`codegraph_explore`) es obligatorio antes de grep/Read, por regla de `CLAUDE.md` del proyecto.
+- `AI_LOG.md` ya no se actualiza automáticamente (solo `/log-prompt` o pedido explícito); la colección de Postman debe mantenerse sincronizada (archivo + MCP `postman`) si cambia algún contrato de endpoint durante las tareas restantes.
+- La base de datos real en Neon (`polla_mundialista`) ya tiene datos de prueba mezclados (usuarios, predicciones, resultados) de las verificaciones manuales — no es una base "limpia".
+- Próximas tareas: #14 Docker Compose (confirmar alcance dado que no se usa Docker local en esta sesión), #15 Render, #16 diagrama C4, #17 cierre de documentación.
+
+### Handoff Context (paste into next session)
+
+Retomas "Polla Mundialista". Backend (#1-9) y Frontend (#10-13) están 100% completos, verificados y COMMITEADOS (`git log` HEAD = `3b2e972`, `git status` limpio — no hay nada pendiente). 85/85 tests backend, 48/48 tests frontend. Antes de nada: (1) relee `docs/tasks.md` completo (la numeración se ajustó a mitad de la sesión anterior, la próxima tarea natural es la #14, Docker Compose — confirma el número exacto); (2) corre `dotnet test backend/PollaMundialista.sln` y `cd frontend && npx ng test --watch=false` para confirmar que sigue todo verde; (3) para la Tarea #14 (Docker Compose), ten en cuenta que el usuario decidió NO usar Docker en esta máquina (usa Neon remoto para todo) — pregúntale explícitamente el alcance esperado antes de asumir que hay que levantar y probar contenedores localmente. Sigue el patrón ya establecido: todo código nuevo se delega a un subagente (`Agent` tool) y tú verificas independientemente después (build/test propios, lectura de archivos clave, y para UI, navegador real vía herramientas `claude-in-chrome` — usa `ng serve --port 4300`, NUNCA el puerto 4200, ocupado por una app ajena real en esta máquina). Usa CodeGraph (`codegraph_explore`) antes de grep/Read, por regla del `CLAUDE.md` del proyecto. La base Neon real ya tiene datos de prueba mezclados de sesiones anteriores (usuarios, predicciones, resultados) — no asumas que está "limpia". No toques `AI_LOG.md` salvo pedido explícito. No inicialices git/hagas push sin pedido explícito.
+
+---
+
 ## Handoff: 2026-09-27
 
 ### Current Task State

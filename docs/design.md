@@ -147,6 +147,17 @@ Se adopta el patrón Mediator para desacoplar los `Controllers` de la lógica de
 - Estado: RxJS + servicios con `BehaviorSubject` (sin NgRx — no se justifica por el tamaño del dominio).
 - Estilos: Tailwind CSS (decisión cerrada en Tarea #10 — combina mejor con un look propio no genérico de Material) para acelerar el panel Admin y el leaderboard.
 
+### 5.1 Lenguaje visual (dark auth, light app)
+
+Decisión registrada durante el refactor de la pantalla de Login, que surgió de un hueco funcional detectado al diseñarla (el enlace "¿Olvidaste tu contraseña?" sin endpoint que lo respaldara — ver §7.2 y Tarea #14):
+
+- **Pantallas de Auth (`/login`, `/register`, y las futuras `/forgot-password` y `/reset-password`)**: tema oscuro — fondo `slate-950` con gradiente radial sutil, tarjeta `bg-slate-900/90` con `border-slate-800`, `rounded-2xl`, `shadow-2xl` y `backdrop-blur-md`, acento de marca `emerald-600` en la acción primaria. Estética "sports & tournament dashboard".
+- **Resto de la app (`/predictions`, `/admin`, `/leaderboard`, `/history`)**: se mantiene el tema claro actual (`bg-slate-100`, cards blancas, acentos `blue-600`) sin cambios en esta iteración. Migrar el resto al tema oscuro es una tarea futura y explícita, no un efecto colateral de este refactor.
+- **Consecuencia aceptada conscientemente**: existe un contraste de tema en la transición auth → app. Se asume como deuda de diseño conocida hasta que exista una tarea que unifique el tema; no se mezcla un esquema de colores a medias.
+- **Iconografía**: SVG inline (Lucide/Heroicons en su path, 24×24, `stroke-width="2"`, `aria-hidden="true"`). No se agrega una librería de iconos al `package.json` para un handful de iconos.
+- **Tokens de interacción**: `focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500`, `active:scale-[0.98]` en la acción primaria, y objetivo táctil mínimo de 44px en campos y botón.
+- **Accesibilidad**: `<label>` visible o `aria-label` en todo campo, `autocomplete` correcto (`email` / `current-password` / `new-password`), `aria-invalid` y `aria-describedby` apuntando al mensaje de error, y el alternador de visibilidad de contraseña con `aria-pressed` y `aria-label` dinámico.
+
 ## 6. Modelo de Datos
 
 ```mermaid
@@ -198,6 +209,13 @@ Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Predi
 | PUT | `/api/admin/matches/{matchId}/result` | Admin | Ingresa/corrige el resultado real y dispara recálculo |
 | GET | `/api/leaderboard` | User/Admin | Ranking global ordenado por puntos |
 
+**Filas planificadas** (Tarea #14, aún **no implementadas** — no forman parte del contrato vigente hasta que esa tarea cierre):
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| POST | `/api/auth/forgot-password` | Público | Solicita un token de reseteo; **siempre** responde con el mismo mensaje genérico |
+| POST | `/api/auth/reset-password` | Público | Consume el token y fija la nueva contraseña |
+
 **Criterio de orden y desempate del leaderboard** (`docs/spec.md` §6.4, definido aquí): 1) `TotalPoints` descendente; 2) a igualdad de puntos, cantidad de predicciones con marcador exacto (`PointsAwarded == 3`) descendente; 3) a igualdad de ambos, `Email` ascendente (orden alfabético), como desempate final determinístico. `LeaderboardEntryDto` expone `Email` y `ExactPredictions` además de `UserId`/`TotalPoints` para soportar este orden y mostrarlo en la UI.
 
 ### 7.1 Documentación OpenAPI/Swagger
@@ -206,6 +224,19 @@ Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Predi
 - **Seguridad**: dado que la API ya protege endpoints con JWT Bearer (§4.1, Tarea #5), `AddSwaggerGen` define un esquema de seguridad `Http`/`Bearer` (`AddSecurityDefinition` + `AddSecurityRequirement` global), habilitando el botón "Authorize" en Swagger UI para probar endpoints protegidos sin herramientas externas.
 - **Exposición**: `app.UseSwagger()` + `app.UseSwaggerUI()` se registran solo bajo `if (app.Environment.IsDevelopment())` (o una config flag equivalente) — no se expone el explorador interactivo en producción/Render, aunque el documento JSON puede habilitarse para integraciones externas (ej. importar la colección en el MCP de Postman).
 - **Alcance**: cubre los 8 endpoints del contrato de la tabla de §7 tal cual quedan definidos por los Controllers existentes (`AuthController`, `PredictionsController`, `AdminController`, `LeaderboardController`); no se generan clientes ni se versiona el documento — fuera de alcance de la prueba técnica.
+
+### 7.2 Recuperación de contraseña (Tarea #14 — planificada)
+
+Se diseña acá, pero **no se implementa en esta tarea**: el refactor visual de Login detectó que el enlace "¿Olvidaste tu contraseña?" no tenía ningún endpoint que lo respaldara. Queda registrado como contrato para que la tarea #14 lo ejecute.
+
+- **Flujo**: `POST /api/auth/forgot-password { email }` → respuesta genérica; el usuario recibe un enlace/token por correo → `POST /api/auth/reset-password { token, newPassword }` → el JWT del usuario deja de ser válido y debe volver a iniciar sesión.
+- **Anti-enumeración (requisito de seguridad)**: `forgot-password` devuelve **siempre** el mismo status y el mismo mensaje, exista o no el email. La UI nunca distingue "usuario no encontrado" de "correo enviado". Un test de integración debe verificar que ambos casos devuelven una respuesta indistinguible.
+- **Token**: aleatorio criptográficamente seguro (≥32 bytes), **almacenado hasheado** en una entidad `PasswordResetToken` (`UserId`, `TokenHash`, `ExpiresAt`, `ConsumedAt`), expiración de 1 hora, de un solo uso, e invalidado explícitamente al cambiar la contraseña.
+- **Envío de correo**: fuera de alcance para una prueba técnica — no hay proveedor de email. Se define la abstracción `IEmailSender` en `Application` con una implementación no-op por defecto; en `Development` el token se expone en la respuesta y se loguea para poder probar el flujo end-to-end, mientras que en otros entornos se descarta. Sustituir la implementación no-op es el punto de extensión para un proveedor real.
+- **Rate limiting**: por simplicidad del alcance, se acepta sin throttling en la primera versión, dejando la interfaz (`IEmailSender`) lista para incorporarlo; se documenta como riesgo conocido.
+- **Frontend**: rutas públicas `/forgot-password` y `/reset-password` en la feature `auth/`, con el mismo lenguaje visual del §5.1. Hasta que la tarea #14 cierre, el enlace aparece en Login como elemento deshabilitado con `title`/`aria-label` "Disponible próximamente" — no navega a una ruta inexistente.
+- **"Recordarme"**: el checkbox se incluye en la UI de Login puramente visual, respaldado por un signal, sin efecto en la sesión: **no existe refresh token** (el JWT expira y la sesión vive en `localStorage`). Dejar el checkbox esperando un mecanismo de refresco que no existe sería un beacon de seguridad; se cablea recién cuando exista esa capacidad.
+
 
 ## 8. Algoritmo de Puntuación (diseño técnico)
 
@@ -281,3 +312,6 @@ Conforme a la decisión de alcance ampliado, Task #1 entrega **ambas** capas de 
 | 7 | Despliegue en Render.com | Azure / AWS | Setup más rápido y de bajo costo para una demo de prueba técnica |
 | 8 | Comunicación API↔Application vía patrón Mediator con el paquete `Mediator` (martinothamar) | MediatR clásico / llamada directa a servicios de Application | Desacopla Controllers de la lógica de negocio, sin el costo de reflection en runtime y sin el modelo de licenciamiento comercial de MediatR v13+ |
 | 9 | `Swashbuckle.AspNetCore` para documentación OpenAPI/Swagger | `Microsoft.AspNetCore.OpenApi` nativo (.NET 9/10) + UI aparte (ej. Scalar) | Paquete único, maduro, con generación de spec + UI interactiva y soporte directo para el esquema de seguridad Bearer JWT ya usado por la API |
+| 10 | Lenguaje visual "sports & tournament dashboard": tema oscuro solo en las pantallas de Auth, tema claro en el resto de la app | Aplicar el tema oscuro a las 6 pantallas de una vez / mantener todo claro | Da identidad propia a la entrada a la app sin re-verificar en navegador las 4 pantallas ya entregadas y testeadas; la unificación total queda como deuda de diseño registrada en §5.1 |
+| 11 | Recuperación de contraseña con token hasheado + `IEmailSender` no-op, y respuesta genérica anti-enumeración | Integrar un proveedor de email real (SendGrid/Resend) | Es una prueba técnica: el flujo debe ser demostrable end-to-end sin credenciales ni costos de terceros; la abstracción deja el intercambio por un proveedor real a una línea |
+| 12 | Checkbox "Recordarme" en la UI sin efecto en la sesión (signal + TODO documentado) | Implementarlo con refresh tokens ahora / omitir el checkbox | No hay refresh token en el contrato: prometer persistencia de sesión sería un beacon de seguridad. Se cablea cuando exista la capacidad |
