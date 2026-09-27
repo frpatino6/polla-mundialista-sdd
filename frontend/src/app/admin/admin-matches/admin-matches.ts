@@ -7,10 +7,15 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Navbar } from '../../core/components/navbar/navbar';
 import { AdminService } from '../../core/services/admin.service';
 import { MatchesService } from '../../core/services/matches.service';
-import { MATCH_GROUP_LABELS, MatchDto } from '../../core/models/predictions.models';
+import {
+  MATCH_GROUP_LABELS,
+  MatchDto,
+  teamFlag,
+  teamInitials,
+} from '../../core/models/predictions.models';
 
 type ResultFormGroup = FormGroup<{
   homeScore: FormControl<number>;
@@ -31,9 +36,13 @@ interface AdminMatchViewModel {
  * El backend recalcula los puntos de las predicciones asociadas al guardar;
  * esta pantalla solo refleja el nuevo estado del partido (fila actualizada),
  * no el leaderboard/historial (Tarea #13, fuera de alcance aquí).
+ *
+ * A diferencia de Predicciones, acá los labels "Local" y "Visitante" quedan
+ * visibles: el admin carga el marcador real, no una predicción, y las dos
+ * columnas no se distinguen por el contexto visual de la card.
  */
 @Component({
-  imports: [ReactiveFormsModule, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, DatePipe, Navbar],
   selector: 'app-admin-matches',
   styleUrl: './admin-matches.css',
   templateUrl: './admin-matches.html',
@@ -44,6 +53,8 @@ export class AdminMatches implements OnInit {
   private readonly adminService = inject(AdminService);
 
   readonly groupLabels = MATCH_GROUP_LABELS;
+  readonly teamFlag = teamFlag;
+  readonly teamInitials = teamInitials;
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
 
@@ -52,6 +63,14 @@ export class AdminMatches implements OnInit {
 
   ngOnInit(): void {
     this.loadMatches();
+  }
+
+  scoreId(vm: AdminMatchViewModel, side: 'home' | 'away'): string {
+    return `admin-score-${side}-${vm.match.id}`;
+  }
+
+  hasResult(match: MatchDto): boolean {
+    return match.homeScore !== null && match.awayScore !== null;
   }
 
   submit(vm: AdminMatchViewModel): void {

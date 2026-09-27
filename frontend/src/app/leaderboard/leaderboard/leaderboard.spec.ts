@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
 import { LeaderboardEntryDto } from '../../core/models/leaderboard.models';
 import { LeaderboardService } from '../../core/services/leaderboard.service';
 import { Leaderboard } from './leaderboard';
@@ -8,15 +9,22 @@ import { Leaderboard } from './leaderboard';
 describe('Leaderboard', () => {
   let leaderboardServiceMock: { getLeaderboard: ReturnType<typeof vi.fn> };
 
+  /** El navbar y el resaltado de la fila propia necesitan la sesión de AuthService. */
+  function configureProviders() {
+    return [
+      provideRouter([]),
+      { provide: LeaderboardService, useValue: leaderboardServiceMock },
+      {
+        provide: AuthService,
+        useValue: { currentUser: { email: 'ana@example.com' }, role: 'User', logout: vi.fn() },
+      },
+    ];
+  }
+
   function setup(entries: LeaderboardEntryDto[]) {
     leaderboardServiceMock = { getLeaderboard: vi.fn().mockReturnValue(of(entries)) };
 
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        { provide: LeaderboardService, useValue: leaderboardServiceMock },
-      ],
-    });
+    TestBed.configureTestingModule({ providers: configureProviders() });
 
     const fixture = TestBed.createComponent(Leaderboard);
     fixture.detectChanges();
@@ -56,9 +64,7 @@ describe('Leaderboard', () => {
   it('shows a friendly message when the leaderboard is empty', () => {
     const fixture = setup([]);
 
-    expect(fixture.nativeElement.textContent).toContain(
-      'Todavía no hay predicciones registradas',
-    );
+    expect(fixture.nativeElement.textContent).toContain('Todavía no hay predicciones registradas');
   });
 
   it('re-queries the backend (no stale cache) every time the component initializes', () => {
@@ -88,16 +94,73 @@ describe('Leaderboard', () => {
       getLeaderboard: vi.fn().mockReturnValue(throwError(() => new Error('network error'))),
     };
 
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        { provide: LeaderboardService, useValue: leaderboardServiceMock },
-      ],
-    });
+    TestBed.configureTestingModule({ providers: configureProviders() });
 
     const fixture = TestBed.createComponent(Leaderboard);
     fixture.detectChanges();
 
     expect(fixture.componentInstance.loadError()).toContain('No se pudo cargar el leaderboard');
+  });
+
+  it('renderiza el navbar compartido con la navegación unificada', () => {
+    const root = setup([]).nativeElement as HTMLElement;
+
+    expect(root.querySelector('app-navbar')).not.toBeNull();
+    expect(root.querySelector('a[routerLink="/predictions"]')).not.toBeNull();
+    expect(root.querySelector('a[routerLink="/leaderboard"]')).not.toBeNull();
+    expect(root.querySelector('a[routerLink="/history"]')).not.toBeNull();
+  });
+
+  it('usa una tabla semántica con caption y scope="col" en cada encabezado', () => {
+    const entries: LeaderboardEntryDto[] = [
+      { userId: 'u1', email: 'zoe@example.com', totalPoints: 9, exactPredictions: 3 },
+    ];
+    const root = setup(entries).nativeElement as HTMLElement;
+
+    const table = root.querySelector('table');
+    expect(table).not.toBeNull();
+    expect(table!.querySelector('caption')?.className).toContain('sr-only');
+    expect(table!.querySelector('caption')?.textContent?.trim().length).toBeGreaterThan(0);
+
+    const headers = [...table!.querySelectorAll('th')];
+    expect(headers.length).toBe(4);
+    expect(headers.every((th) => th.getAttribute('scope') === 'col')).toBe(true);
+    expect(table!.querySelector('thead')).not.toBeNull();
+  });
+
+  it('resalta la fila del usuario en curso sin depender solo del color', () => {
+    // La sesión mockeada es ana@example.com (ver configureProviders), segunda en el ranking.
+    const entries: LeaderboardEntryDto[] = [
+      { userId: 'u1', email: 'zoe@example.com', totalPoints: 9, exactPredictions: 3 },
+      { userId: 'u2', email: 'ana@example.com', totalPoints: 6, exactPredictions: 2 },
+    ];
+
+    const root = setup(entries).nativeElement as HTMLElement;
+    const rows = root.querySelectorAll('tbody tr');
+
+    // El resaltado se suma a las utilidades estáticas de la fila (hover, divisores).
+    expect(rows[1].className).toContain('bg-emerald-500/5');
+    expect(rows[1].className).toContain('hover:bg-slate-800/40');
+    expect(rows[0].className).not.toContain('bg-emerald-500/5');
+    expect(rows[0].className).toContain('hover:bg-slate-800/40');
+
+    // Marcador textual: visible para todos y announced para lectores de pantalla.
+    const markers = root.querySelectorAll('[data-current-user]');
+    expect(markers.length).toBe(1);
+    expect(markers[0].textContent).toContain('Vos');
+    expect(root.textContent).toContain('(tu usuario)');
+  });
+
+  it('no resalta ninguna fila cuando la entrada no corresponde a la sesión', () => {
+    const entries: LeaderboardEntryDto[] = [
+      { userId: 'u1', email: 'zoe@example.com', totalPoints: 9, exactPredictions: 3 },
+    ];
+
+    const fixture = setup(entries);
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelector('[data-current-user]')).toBeNull();
+    expect(root.querySelectorAll('tbody tr')[0].className).not.toContain('bg-emerald-500/5');
+    expect(root.textContent).not.toContain('(tu usuario)');
   });
 });

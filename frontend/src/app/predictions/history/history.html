@@ -1,64 +1,180 @@
-<div class="min-h-screen bg-slate-100 px-4 py-6">
-  <header class="mx-auto mb-6 flex max-w-3xl items-center justify-between">
-    <h1 class="text-xl font-semibold text-slate-800">Mi Historial</h1>
-    <a
-      routerLink="/predictions"
-      class="rounded bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900"
-    >
-      Volver a predicciones
-    </a>
-  </header>
+<div class="relative min-h-screen bg-slate-950">
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+    <div
+      class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.14),transparent_60%)]"
+    ></div>
+    <div
+      class="absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.05)_1px,transparent_1px)] bg-[size:56px_56px]"
+    ></div>
+    <div
+      class="absolute -top-40 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-3xl"
+    ></div>
+  </div>
 
-  <div class="mx-auto max-w-3xl">
-    @if (loading()) {
-      <p class="text-sm text-slate-600">Cargando historial…</p>
-    } @else if (loadError()) {
-      <p class="text-sm text-red-600">{{ loadError() }}</p>
-    } @else if (history().length === 0) {
-      <p class="text-sm text-slate-600">Todavía no has registrado predicciones.</p>
-    } @else {
-      <div class="overflow-hidden rounded-lg bg-white shadow">
-        <table class="min-w-full divide-y divide-slate-200">
-          <thead class="bg-slate-50">
-            <tr>
-              <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-slate-500">
-                Partido
-              </th>
-              <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">
-                Mi predicción
-              </th>
-              <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">
-                Resultado real
-              </th>
-              <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">
-                Puntos
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            @for (entry of history(); track entry.matchId) {
-              <tr>
-                <td class="px-4 py-2 text-sm text-slate-800">
-                  {{ entry.homeTeam }} vs {{ entry.awayTeam }}
-                </td>
-                <td class="px-4 py-2 text-right text-sm text-slate-700">
-                  {{ entry.predictedHomeScore }} - {{ entry.predictedAwayScore }}
-                </td>
-                <td class="px-4 py-2 text-right text-sm text-slate-700">
-                  @if (isPending(entry)) {
-                    Pendiente
-                  } @else {
-                    {{ entry.actualHomeScore }} - {{ entry.actualAwayScore }}
-                  }
-                </td>
-                <td class="px-4 py-2 text-right text-sm text-slate-700">
-                  {{ isPending(entry) ? '—' : entry.pointsAwarded }}
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+  <div class="relative">
+    <app-navbar />
+
+    <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold tracking-tight text-white">Mi Historial</h1>
+        <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+          Todas tus predicciones con el resultado real de cada partido y los puntos que te sumo cada
+          una. Las que todavía no se jugaron aparecen como pendientes.
+        </p>
       </div>
-    }
+
+      @if (loading()) {
+        <div
+          class="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-6 text-sm text-slate-400"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-4 animate-spin"
+            aria-hidden="true"
+          >
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <span>Cargando historial…</span>
+        </div>
+      } @else if (loadError()) {
+        <div
+          role="alert"
+          class="flex items-start gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-300"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="mt-0.5 size-4 shrink-0"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
+          </svg>
+          <span>{{ loadError() }}</span>
+        </div>
+      } @else if (history().length === 0) {
+        <p
+          class="rounded-2xl border border-dashed border-slate-800 p-8 text-center text-sm text-slate-400"
+        >
+          Todavía no has registrado predicciones.
+        </p>
+      } @else {
+        <div
+          class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/80 shadow-lg shadow-black/30"
+        >
+          <table class="w-full min-w-[38rem]">
+            <caption class="sr-only">
+              Tus predicciones con el resultado real de cada partido y los puntos que sumaste.
+            </caption>
+            <thead class="bg-slate-800/40">
+              <tr>
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-400 uppercase"
+                >
+                  Partido
+                </th>
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-400 uppercase"
+                >
+                  Mi predicción
+                </th>
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-400 uppercase"
+                >
+                  Resultado real
+                </th>
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-400 uppercase"
+                >
+                  Puntos
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/80">
+              @for (entry of history(); track entry.matchId) {
+                <tr class="transition-colors hover:bg-slate-800/40">
+                  <td class="px-4 py-3 text-sm text-slate-200">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      @if (teamFlag(entry.homeTeam); as homeFlag) {
+                        <span data-team-flag aria-hidden="true" class="text-xl leading-none">{{
+                          homeFlag
+                        }}</span>
+                      } @else {
+                        <span
+                          data-team-initials
+                          aria-hidden="true"
+                          class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-[10px] font-bold tracking-wide text-slate-300"
+                          >{{ teamInitials(entry.homeTeam) }}</span
+                        >
+                      }
+                      <span class="font-semibold text-slate-100">{{ entry.homeTeam }}</span>
+                      <span class="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                        vs
+                      </span>
+                      <span class="font-semibold text-slate-100">{{ entry.awayTeam }}</span>
+                      @if (teamFlag(entry.awayTeam); as awayFlag) {
+                        <span data-team-flag aria-hidden="true" class="text-xl leading-none">{{
+                          awayFlag
+                        }}</span>
+                      } @else {
+                        <span
+                          data-team-initials
+                          aria-hidden="true"
+                          class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-[10px] font-bold tracking-wide text-slate-300"
+                          >{{ teamInitials(entry.awayTeam) }}</span
+                        >
+                      }
+                    </div>
+                  </td>
+                  <td
+                    class="px-4 py-3 text-right text-sm font-semibold text-slate-100 tabular-nums"
+                  >
+                    {{ entry.predictedHomeScore }} - {{ entry.predictedAwayScore }}
+                  </td>
+                  <td class="px-4 py-3 text-right text-sm text-slate-200">
+                    @if (isPending(entry)) {
+                      <span
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-xs font-semibold text-slate-400"
+                      >
+                        Pendiente
+                      </span>
+                    } @else {
+                      <span class="tabular-nums"
+                        >{{ entry.actualHomeScore }} - {{ entry.actualAwayScore }}</span
+                      >
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-right text-sm tabular-nums">
+                    @if (isPending(entry)) {
+                      <span class="text-slate-400">—</span>
+                    } @else if (entry.pointsAwarded > 0) {
+                      <span class="font-semibold text-emerald-300">{{ entry.pointsAwarded }}</span>
+                    } @else {
+                      <span class="text-slate-400">0</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </main>
   </div>
 </div>

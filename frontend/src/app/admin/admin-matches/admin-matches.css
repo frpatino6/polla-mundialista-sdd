@@ -1,0 +1,18 @@
+/* Animación del feedback de guardado de un resultado. El keyframe se declara
+   acá (no con una librería) y Angular lo renombra con el scope del componente,
+   así que no colisiona con otras pantallas. */
+@keyframes saved-feedback-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.saved-feedback {
+  animation: saved-feedback-in 240ms ease-out;
+}

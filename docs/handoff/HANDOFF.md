@@ -128,3 +128,80 @@ Backend (Tareas #1-9 de `docs/tasks.md`) está **completo, verde y commiteado** 
 Estás retomando "Polla Mundialista" (prueba técnica Bizagi). Backend .NET 10 completo y commiteado (85/85 tests, Neon Postgres real). Frontend Angular 22 + Tailwind con Auth (Tarea #10) y Predicciones (Tarea #11) completos pero SIN COMMITEAR, igual que un fix de un bug real de serialización de enums en los Controllers (backend). Antes de nada: (1) relee `docs/tasks.md` completo para confirmar la numeración vigente de tareas (se renumeró a mitad de sesión); (2) corre `dotnet test backend/PollaMundialista.sln` (espera 85/85) y `cd frontend && npx ng test --watch=false` (espera 31/31) para confirmar que el estado sigue verde; (3) pregunta al usuario si quiere commitear el trabajo pendiente antes de seguir. El repo YA tiene git+remoto — nunca inicialices ni hagas push sin pedido explícito. Sigue el patrón: cada pieza de código nuevo se delega a un subagente (`Agent` tool), y tú verificas independientemente después (build/test propios, lectura de archivos clave, y para cambios de UI, navegador real vía herramientas `claude-in-chrome` — usa el puerto 4300 para `ng serve`, el 4200 está ocupado por una app ajena en esta máquina, NUNCA la toques). Usa CodeGraph (`codegraph_explore`) antes de grep/Read. La siguiente tarea natural es el Panel Admin (frontend) — revisa el número exacto en `docs/tasks.md` y su entregable/criterios antes de delegar. No toques `AI_LOG.md` salvo pedido explícito.
 
 ---
+
+---
+
+## Handoff: 2026-09-27T14:19:11.591Z (auto-saved before compaction)
+
+### Compaction Snapshot
+
+- Trigger: opencode session compaction
+- Last user message:
+  (unavailable)
+
+- Last assistant message:
+  (unavailable)
+
+### Git Snapshot
+
+- Branch: main
+- Status (actualizado al cierre del rediseño, todo sin commitear):
+  M docs/design.md
+   M docs/handoff/HANDOFF.md
+   M docs/tasks.md
+   M frontend/src/app/admin/admin-matches/admin-matches.css
+   M frontend/src/app/admin/admin-matches/admin-matches.html
+   M frontend/src/app/admin/admin-matches/admin-matches.spec.ts
+   M frontend/src/app/admin/admin-matches/admin-matches.ts
+   M frontend/src/app/app.config.ts
+   M frontend/src/app/core/models/predictions.models.ts
+   M frontend/src/app/leaderboard/leaderboard/leaderboard.html
+   M frontend/src/app/leaderboard/leaderboard/leaderboard.spec.ts
+   M frontend/src/app/leaderboard/leaderboard/leaderboard.ts
+   M frontend/src/app/predictions/history/history.html
+   M frontend/src/app/predictions/history/history.spec.ts
+   M frontend/src/app/predictions/history/history.ts
+   M frontend/src/app/predictions/predictions/predictions.css
+   M frontend/src/app/predictions/predictions/predictions.html
+   M frontend/src/app/predictions/predictions/predictions.spec.ts
+   M frontend/src/app/predictions/predictions/predictions.ts
+  ?? .codegraph/      (apareció durante la sesión; NO tocar sin pedido del usuario)
+  ?? .vscode/         (idem: auto-approve del CLI codegraph)
+  ?? frontend/src/app/core/components/   (navbar nuevo)
+- Recent commits:
+  8d47bfb feat(auth): enhance login and register forms with improved UI and accessibility
+  3b2e972 feat: add admin panel for match results management
+  6de9f32 feat: add handoff log for Polla Mundialista project with current task state and key decisions
+  127ec56 feat: add role guard and admin guard for route protection
+  5bba65c feat: integrate Swagger for API documentation and add tests for OpenAPI compliance
+
+### Model Summary
+
+- Rediseño premium "Sports & Tournament Dashboard" **completo y verificado** en las 4 pantallas internas, con navbar compartido. El tema oscuro dejó de ser solo de Auth: ahora las 6 pantallas de la app usan el mismo sistema visual.
+- Decisiones confirmadas por el usuario: migrar **las 4 pantallas + navbar unificado**, navegación por **pestañas Grupo A / Grupo B con A por defecto**, e **identidad de equipo por bandera emoji**.
+- Nuevo `core/components/navbar/` (sticky, estado activo con `isActiveChange` → signal, link Admin solo para rol Admin, logout vía `AuthService`). Va **dentro del template de cada pantalla** y no en `app.html`, a propósito: los tests consultan links con `fixture.nativeElement` y el DOM de un hijo cae dentro del host.
+- Predicciones: `activeGroup` signal + `visibleMatches` computed, tabs con el patrón ARIA completo (flechas ← →, Home/End), cards con fecha/resultado/badge de puntos, fila VS con inputs de 56×48 y feedback de guardado animado con `@keyframes` en `predictions.css`.
+- Banderas: `TEAM_FLAGS` + `teamFlag()`/`teamInitials()` en `core/models/predictions.models.ts`, matching normalizado con NFD ("Países Bajos" = "Paises Bajos") y fallback a iniciales; ahora toleran `null`/`undefined` sin romper.
+- **Bug real encontrado y corregido**: el botón "Guardar predicción" había quedado fuera de su `<form>` en el rediseño, así que nunca disparaba `ngSubmit` (0 requests de red). Los tests no lo detectaban porque llamaban `component.submit(vm)` en vez de clickear el DOM. Corregido y cubierto con un test de regresión que clickea el botón renderizado.
+- Fechas en español: `registerLocaleData(localeEs)` + `LOCALE_ID: 'es'` en `app.config.ts`, y formato `d MMM y, HH:mm` (el `medium` de Angular agregaba segundos de más).
+- Contraste **medido sobre el render real**, no estimado: el texto blanco sobre `emerald-600` da 3.65:1 y no cumple AA, por eso toda acción primaria usa `bg-emerald-700`; el texto nunca baja de `text-slate-400`. 0 fallos WCAG en las 4 pantallas.
+- Verificación real con Chrome/CDP: tabs por click y teclado, navbar sticky al scrollear, guardado real contra la API (POST → feedback + badge actualizado), sin errores de consola y sin overflow horizontal a 390px en las 4 pantallas. El guardado de Admin se verificó interceptando la respuesta con `Fetch.fulfillRequest`, **sin escribir en la DB sembrada**.
+- Tests: 48 → **87 en 16 archivos, todos verdes**; `ng build` sin warnings; Prettier OK. Ningún test existente fue borrado ni debilitado.
+- `docs/design.md` §5.1 reescrito y ADR #10 revertido formalmente (oscuro solo en Auth → oscuro en toda la app).
+- Todo el rediseño está **sin commit**. `.codegraph/` (4.3 MB) y `.vscode/` aparecieron como untracked durante la sesión y no se tocaron.
+
+### Handoff Context (paste into next session)
+
+- El rediseño está terminado y verificado; lo único que falta es commit, y solo si el usuario lo pide.
+- Verificar antes de dar cualquier cosa por buena: `cd frontend && npx ng test --watch=false` (esperar 87/87 en 16 archivos), `npx ng build` y `npx prettier --check "src/app/**"`.
+- Para levantar: backend en `dotnet run --project src/PollaMundialista.Api` (5282) y frontend en `npx ng serve --port 4300`. El 4200 está ocupado por otra app: no lo tocar.
+- Usar siempre `http://localhost:4300` (nunca `127.0.0.1`): el CORS de `backend/src/PollaMundialista.Api/Program.cs` está hardcodeado a `localhost:4200` y `localhost:4300`. Render y otros orígenes siguen bloqueados — es deuda conocida.
+- CodeGraph: `.codegraph/` **ahora existe** (contrario al handoff anterior). No se reindexó ni se borró; preguntar al usuario antes de tocarlo.
+- `AI_LOG.md` ya tiene la entrada `## 2026-09-27`; solo agregar otra con pedido explícito.
+- La colección de Postman **no** se tocó: este rediseño es 100% frontend, sin cambios de contrato HTTP.
+- No reintroducir: botón `type="submit"` dentro de su `<form>`; `notify…Changed()` en toda mutación de view model (zoneless); `teamFlag`/`teamInitials` tolerantes.
+- Si se toca el tema, re-medir contraste con el helper CDP antes de dar por bueno un color: la conversión a sRGB tiene que componer alfa (un `globalCompositeOperation='copy'` rompe la medición y da falsos fallos).
+- Siguiente trabajo grande del plan: Tarea #14, recuperación de contraseña (ya especificada en §7.2 y en tasks.md; ADR #11 y #12 la sostienen).
+- Después siguen #15 Docker Compose, #16 Render, #17 diagrama C4 y #18 cierre.
+
+---

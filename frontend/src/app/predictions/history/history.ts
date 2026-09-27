@@ -1,7 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Navbar } from '../../core/components/navbar/navbar';
 import { PredictionsService } from '../../core/services/predictions.service';
-import { PredictionHistoryEntryDto } from '../../core/models/predictions.models';
+import {
+  PredictionHistoryEntryDto,
+  teamFlag,
+  teamInitials,
+} from '../../core/models/predictions.models';
 
 /**
  * Historial personal de predicciones (Tarea #13). Reutiliza
@@ -9,9 +13,13 @@ import { PredictionHistoryEntryDto } from '../../core/models/predictions.models'
  * desde la Tarea #11) y lo presenta como tabla de solo lectura: predicción
  * propia, resultado real ("Pendiente" si el partido aún no se jugó) y puntos
  * obtenidos ("—" mientras esté pendiente).
+ *
+ * Los equipos se muestran con el mismo lenguaje visual de Predicciones: bandera
+ * emoji cuando el fixture la tiene mapeada y, si no, un badge de iniciales,
+ * siempre acompañado del nombre en texto.
  */
 @Component({
-  imports: [RouterLink],
+  imports: [Navbar],
   selector: 'app-history',
   styleUrl: './history.css',
   templateUrl: './history.html',
@@ -22,6 +30,8 @@ export class History implements OnInit {
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
   readonly history = signal<PredictionHistoryEntryDto[]>([]);
+  readonly teamFlag = teamFlag;
+  readonly teamInitials = teamInitials;
 
   ngOnInit(): void {
     this.loadHistory();

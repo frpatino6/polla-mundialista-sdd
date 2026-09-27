@@ -1,4 +1,13 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  signal,
+  viewChildren,
+} from '@angular/core';
 import {
   FormBuilder,
   FormControl,
@@ -7,8 +16,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { Subscription, forkJoin, interval, startWith } from 'rxjs';
+import { Navbar } from '../../core/components/navbar/navbar';
 import { AuthService } from '../../core/services/auth.service';
 import { MatchesService } from '../../core/services/matches.service';
 import { PredictionsService } from '../../core/services/predictions.service';
@@ -17,10 +26,15 @@ import {
   MatchDto,
   MatchGroup,
   PredictionHistoryEntryDto,
+  teamFlag,
+  teamInitials,
 } from '../../core/models/predictions.models';
 
 /** Cada cuántos ms se reevalúa si un partido ya arrancó (bloqueo por kickoff). */
 const LOCK_CHECK_INTERVAL_MS = 30000;
+
+/** Estado del badge de cada tarjeta: ya sumando puntos, guardada sin resultado, o sin predecir. */
+type PredictionStatus = 'earned' | 'awaiting' | 'pending';
 
 type PredictionFormGroup = FormGroup<{
   homeScore: FormControl<number>;
@@ -49,9 +63,13 @@ interface GroupSection {
  * un view model por partido y deshabilita el formulario de cada partido cuando
  * `now >= match.kickoffAt`, refrescando ese estado periódicamente mientras la
  * pantalla sigue abierta (sin recargar).
+ *
+ * Los partidos se muestran en pestañas por grupo (Grupo A por defecto). `sections`
+ * sigue siendo la vista agrupada completa que consume el historial; la pantalla
+ * usa `visibleMatches`, que es la sección de la pestaña activa.
  */
 @Component({
-  imports: [ReactiveFormsModule, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, DatePipe, Navbar],
   selector: 'app-predictions',
   styleUrl: './predictions.css',
   templateUrl: './predictions.html',
@@ -62,7 +80,6 @@ export class Predictions implements OnInit, OnDestroy {
   private readonly predictionsService = inject(PredictionsService);
   private readonly authService = inject(AuthService);
 
-  readonly email = this.authService.currentUser?.email ?? null;
   /** Enlace al Panel Admin visible solo para el rol Admin (Tarea #12). */
   readonly isAdmin = this.authService.role === 'Admin';
   readonly loading = signal(true);
@@ -70,6 +87,19 @@ export class Predictions implements OnInit, OnDestroy {
 
   private readonly groupA = signal<MatchViewModel[]>([]);
   private readonly groupB = signal<MatchViewModel[]>([]);
+
+  readonly groupLabels = MATCH_GROUP_LABELS;
+  readonly groups: readonly MatchGroup[] = ['A', 'B'];
+  readonly teamFlag = teamFlag;
+  readonly teamInitials = teamInitials;
+
+  /** Pestaña de grupo visible; Grupo A por defecto. */
+  readonly activeGroup = signal<MatchGroup>('A');
+  readonly visibleMatches = computed<MatchViewModel[]>(() =>
+    this.activeGroup() === 'A' ? this.groupA() : this.groupB(),
+  );
+
+  private readonly tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('groupTab');
 
   readonly sections = computed<GroupSection[]>(() => [
     { group: 'A', label: MATCH_GROUP_LABELS['A'], matches: this.groupA() },
@@ -86,8 +116,68 @@ export class Predictions implements OnInit, OnDestroy {
     this.lockSubscription?.unsubscribe();
   }
 
-  logout(): void {
-    this.authService.logout();
+  selectGroup(group: MatchGroup): void {
+    this.activeGroup.set(group);
+  }
+
+  tabId(group: MatchGroup): string {
+    return `group-tab-${group}`;
+  }
+
+  panelId(group: MatchGroup): string {
+    return `group-panel-${group}`;
+  }
+
+  scoreId(vm: MatchViewModel, side: 'home' | 'away'): string {
+    return `score-${side}-${vm.match.id}`;
+  }
+
+  matchesIn(group: MatchGroup): number {
+    return (group === 'A' ? this.groupA() : this.groupB()).length;
+  }
+
+  /** Flechas ← → y Home/End para recorrer el tablist, como espera el patrón ARIA de tabs. */
+  onTabKeydown(event: KeyboardEvent, group: MatchGroup): void {
+    const current = this.groups.indexOf(group);
+    let next: number;
+
+    switch (event.key) {
+      case 'ArrowRight':
+        next = (current + 1) % this.groups.length;
+        break;
+      case 'ArrowLeft':
+        next = (current - 1 + this.groups.length) % this.groups.length;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = this.groups.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    const target = this.groups[next];
+    this.selectGroup(target);
+    this.tabButtons()[next]?.nativeElement.focus();
+  }
+
+  statusOf(vm: MatchViewModel): PredictionStatus {
+    const points = this.pointsOf(vm);
+    if (points > 0) {
+      return 'earned';
+    }
+    return vm.existingPrediction ? 'awaiting' : 'pending';
+  }
+
+  pointsOf(vm: MatchViewModel): number {
+    return vm.existingPrediction?.pointsAwarded ?? 0;
+  }
+
+  hasResult(match: MatchDto): boolean {
+    return match.homeScore !== null && match.awayScore !== null;
   }
 
   submit(vm: MatchViewModel): void {
