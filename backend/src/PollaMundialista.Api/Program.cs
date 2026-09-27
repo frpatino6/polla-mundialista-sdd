@@ -66,10 +66,12 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+var corsAllowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularDev", policy =>
-        policy.WithOrigins("http://localhost:4200", "http://localhost:4300").AllowAnyHeader().AllowAnyMethod());
+        policy.WithOrigins(corsAllowedOrigins).AllowAnyHeader().AllowAnyMethod());
 });
 
 var app = builder.Build();
