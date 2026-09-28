@@ -184,8 +184,9 @@ Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripc
 
 ---
 
-### Tarea #20 — Cierre de Documentación (AI_LOG.md, README, `.claude/`)
+### Tarea #20 — Cierre de Documentación (AI_LOG.md, README, `.claude/`) — ✅ COMPLETA
 **Agente sugerido:** `code-reviewer`
 **Entregable:** `AI_LOG.md` consolidado con los prompts complejos registrados durante todas las tareas; `README.md` con instrucciones de arranque local y enlaces de despliegue (backend y frontend); `.claude/agents/` y slash command de logging documentados.
 **Criterios de aceptación:** un tercero puede clonar el repo, seguir el README, y levantar la app localmente sin contexto adicional.
 **Dependencias:** todas las anteriores (excepto la #16, excluida).
+**Estado:** `README.md` con demo en vivo, credenciales de prueba, stack, arquitectura (enlace a C4 de la Tarea #19), instrucciones de arranque local (backend+frontend) y tests, despliegue en producción, y documentación adicional (incluyendo el slash command `/log-prompt`). `AI_LOG.md` consolidado con los prompts complejos de todas las tareas, incluyendo el de la Tarea #15 (recuperado retroactivamente) y la saga de despliegue de #17/#18/#19. `.claude/agents/` ya existía y quedó referenciado en el README.

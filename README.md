@@ -117,7 +117,7 @@ npx ng test --watch=false
 - [`docs/design.md`](./docs/design.md) — diseño de arquitectura (cómo se construye: C4, modelo de datos, contrato de API, ADRs).
 - [`docs/tasks.md`](./docs/tasks.md) — plan de tareas (metodología SDD).
 - [`docs/postman/PollaMundialista.postman_collection.json`](./docs/postman/PollaMundialista.postman_collection.json) — colección Postman sincronizada con el contrato de API (endpoints contra `localhost`).
-- [`AI_LOG.md`](./AI_LOG.md) — log de prompts complejos de IA usados durante el desarrollo.
+- [`AI_LOG.md`](./AI_LOG.md) — log de prompts complejos de IA usados durante el desarrollo, alimentado a demanda con el slash command [`.claude/commands/log-prompt.md`](./.claude/commands/log-prompt.md) (`/log-prompt`) cuando un prompt fue complejo (diseño de un algoritmo, resolución de un bug no trivial) — nunca automático.
 - [`.claude/agents/`](./.claude/agents/) — subagentes documentados usados durante el desarrollo (`architect`, `frontend-expert`, `code-reviewer`, `qa-harness`).
 
 ## Roles y funcionalidades
