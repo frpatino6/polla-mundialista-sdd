@@ -398,3 +398,39 @@ Estás retomando "Polla Mundialista" (prueba técnica Bizagi). Backend .NET 10 c
 (TODO: rellenar tras la compactación — 10–20 líneas de instrucciones concretas)
 
 ---
+
+---
+
+## Handoff: 2026-09-28T19:54:42.755Z (auto-saved before compaction)
+
+### Compaction Snapshot
+
+- Trigger: opencode session compaction
+- Last user message:
+  (unavailable)
+
+- Last assistant message:
+
+  Buena propuesta, con un matiz que cambia la forma. Reviso el estado actual de `tasks.md` para propose algo concreto:
+
+### Git Snapshot
+
+- Branch: main
+- Status:
+  
+- Recent commits:
+  596fa9f feat: set environment variable for JWT secret in integration tests
+  8fc3c67 docs: add security audit findings and recommendations for API .NET 10
+  1f2b24d fix: correct Spanish grammar in copy messages across multiple files
+  6706403 docs: close out Task #20 — document /log-prompt in README, consolidate deployment prompts in AI_LOG
+  97c6db4 docs: fix README claiming Swagger is reachable in production (it's Development-only)
+
+### Model Summary
+
+(TODO: rellenar tras la compactación — 8–12 bullets)
+
+### Handoff Context (paste into next session)
+
+(TODO: rellenar tras la compactación — 10–20 líneas de instrucciones concretas)
+
+---

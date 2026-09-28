@@ -254,12 +254,41 @@ Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Predi
 ### 7.2 Recuperación de contraseña (Tarea #14 — implementada)
 
 - **Flujo**: `POST /api/auth/forgot-password { email }` → respuesta genérica; el usuario recibe un enlace/token por correo → `POST /api/auth/reset-password { token, newPassword }` → el JWT del usuario deja de ser válido y debe volver a iniciar sesión.
+  - ⚠️ **Parcialmente implementado — SEC-11 / Tarea #26.** El flujo y la invalidación del token de reseteo están implementados, pero **la revocación del JWT no**: `User.ChangePassword` solo reasigna el hash y no hay `SecurityStamp` ni lista de revocación, por lo que un JWT emitido antes del reseteo sigue siendo válido hasta su expiración. La premisa del diseño se **mantiene** (es el comportamiento correcto) y se implementa en la Tarea #26 con columna `SecurityStamp` + claim + evento `OnTokenValidated`. No se degrada la especificación para reflejar el código: al revés.
 - **Anti-enumeración (requisito de seguridad)**: `forgot-password` devuelve **siempre** el mismo status y el mismo mensaje, exista o no el email. La UI nunca distingue "usuario no encontrado" de "correo enviado". Un test de integración debe verificar que ambos casos devuelven una respuesta indistinguible.
 - **Token**: aleatorio criptográficamente seguro (≥32 bytes), **almacenado hasheado** en una entidad `PasswordResetToken` (`UserId`, `TokenHash`, `ExpiresAt`, `ConsumedAt`), expiración de 1 hora, de un solo uso, e invalidado explícitamente al cambiar la contraseña.
 - **Envío de correo**: fuera de alcance para una prueba técnica — no hay proveedor de email. Se define la abstracción `IEmailSender` en `Application` con una implementación no-op por defecto; en `Development` el token se expone en la respuesta y se loguea para poder probar el flujo end-to-end, mientras que en otros entornos se descarta. Sustituir la implementación no-op es el punto de extensión para un proveedor real.
+  - ⚠️ **Corregido por SEC-09 / Tarea #24.** Este diseño tiene dos problemas. Primero, **exagera la superficie de exposición**: el código nunca incluyó el token en el body HTTP, solo lo loguea; la redacción se ajusta a la realidad. Segundo, y más importante, **gatear por `IsDevelopment()` es frágil**: si Render queda con `ASPNETCORE_ENVIRONMENT=Development` (misconfiguración silenciosa y frecuente), todos los tokens y emails caen al log. El gate pasa a ser un flag explícito `PasswordReset:ExposeToken` (default `false`).
 - **Rate limiting**: por simplicidad del alcance, se acepta sin throttling en la primera versión, dejando la interfaz (`IEmailSender`) lista para incorporarlo; se documenta como riesgo conocido.
+  - ⚠️ **Riesgo cerrado como aceptable solo en alcance limitado — SEC-10 / Tarea #25.** La aceptación de "sin throttling" era válida para `forgot-password`, pero la auditoría verificó que **en realidad faltaba en los cuatro endpoints de auth**, no solo en ese: `login` quedó sin ninguna mitigación, y combinado con SEC-07 habilita enumeración de cuentas y credential stuffing. Se implementará *fixed window* por IP.
 - **Frontend**: rutas públicas `/forgot-password` y `/reset-password` en la feature `auth/`, con el mismo lenguaje visual del §5.1. El enlace "¿Olvidaste tu contraseña?" de Login quedó habilitado y navega a la ruta real.
 - **"Recordarme"**: el checkbox se incluye en la UI de Login puramente visual, respaldado por un signal, sin efecto en la sesión: **no existe refresh token** (el JWT expira y la sesión vive en `localStorage`). Dejar el checkbox esperando un mecanismo de refresco que no existe sería un beacon de seguridad; se cablea recién cuando exista esa capacidad.
+
+### 7.3 Postura de seguridad objetivo (auditoría 2026-09-27)
+
+La auditoría completa está en **`docs/security-audit-2026-09-27.md`** (evidencia fechada: hallazgos `SEC-01`…`SEC-12`, con `archivo:línea` y las 3 pruebas empíricas que respaldan cada afirmación). El plan de ejecución es `docs/tasks.md` **#21–#27**. Esta sección define la **postura objetivo**, es decir qué debe cumplir la API una vez cerradas las tareas — no qué cumple hoy.
+
+**Controles ya verificados como conformes** (no requieren acción, y conviene documentarlos para que una refactorización futura no los rompa en silencio): cero SQL concatenado (todo por LINQ); secretos exclusivamente en User Secrets/variables de entorno; falla cerrada ante secreto inválido; rechazo de `alg=none`; RBAC por rol en Admin; `userId` tomado del claim JWT y no del body (sin IDOR); `ILogger` sin PII ni secretos; anti-enumeración en `forgot-password`; y CORS sin `AllowAnyOrigin`+`AllowCredentials` con `AllowedOrigins: []` en producción.
+
+**Controles que la postura exige y hoy faltan**:
+
+| Control | Estado | Referencia |
+|---|---|---|
+| Algoritmo de firma fijado (solo HS256) | ❌ acepta HS512 | SEC-01 |
+| Configuración validada al arranque (`ValidateOnStart`) | ❌ arranca con secreto vacío | SEC-02 |
+| Deny-by-default (`FallbackPolicy`) | ❌ implícito | SEC-03 |
+| Perímetro HTTP (headers, HTTPS/HSTS, CORS acotado) | ❌ ausente | SEC-06 |
+| Rate limiting por IP en auth | ❌ inexistente | SEC-10 |
+| Revocación de JWT al cambiar contraseña | ❌ incumplida | SEC-11 |
+| RFC 7807 en errores | ❌ ad-hoc `{message}` | SEC-12 |
+| Anti-timing en login | ❌ cortocircuita | SEC-07 |
+| Token de reseteo fuera de logs | ⚠️ gateado por environment | SEC-09 |
+
+**Restricciones transversales de la remediación** (aplican a #22–#27):
+
+- **Toda configuración nueva es opcional con default seguro.** Ningún cambio puede requerir tocar el deploy existente en Render para seguir arrancando; si un valor falta, la app debe usar el default o negarse a arrancar con un error claro (nunca con un `500` en el primer request — SEC-02).
+- **Los cambios de contrato HTTP se migran atómicamente con sus consumidores.** Afecta a la colección de Postman (`docs/postman/PollaMundialista.postman_collection.json` + sincronización con el workspace) y a los services Angular que leen `err?.error?.message`. Un cambio de contrato sin migrar a los consumidores en el mismo commit es un outage, no una mejora de seguridad.
+- **Cada hallazgo SEC cerrado llega con su test de regresión, en la misma tarea que lo corrige.** Un hallazgo sin prueba puede reaparecer sin que nadie lo note.
 
 
 ## 8. Algoritmo de Puntuación (diseño técnico)
@@ -338,3 +367,6 @@ Conforme a la decisión de alcance ampliado, Task #1 entrega **ambas** capas de 
 | 10 | Lenguaje visual "sports & tournament dashboard": tema oscuro en **todas** las pantallas de la app (Auth + las 4 internas), con navbar compartido, pestañas de grupo en Predicciones y banderas emoji por equipo | Tema oscuro solo en Auth y claro en el resto / aplicar el oscuro a las 6 pantallas de una vez | **Revertido respecto de la decisión original** (que era oscuro solo en Auth). La unificación total se decidió después de que el usuario pidiera explícitamente el rediseño de Predicciones: mantener dos esquemas obligaba a re-verificar en navegador las 4 pantallas ya entregadas y dejaba la navegación fragmentada, con cada pantalla llevando su propio link "Volver a predicciones". El costo — rehacer 4 pantallas — se paga una vez y encima quedó una barra de navegación común y un contraste verificado, no supuesto. Ver §5.1 |
 | 11 | Recuperación de contraseña con token hasheado + `IEmailSender` no-op, y respuesta genérica anti-enumeración | Integrar un proveedor de email real (SendGrid/Resend) | Es una prueba técnica: el flujo debe ser demostrable end-to-end sin credenciales ni costos de terceros; la abstracción deja el intercambio por un proveedor real a una línea |
 | 12 | Checkbox "Recordarme" en la UI sin efecto en la sesión (signal + TODO documentado) | Implementarlo con refresh tokens ahora / omitir el checkbox | No hay refresh token en el contrato: prometer persistencia de sesión sería un beacon de seguridad. Se cablea cuando exista la capacidad |
+| 13 | Hallazgos de seguridad con ID `SEC-nn` y evidencia fechada en un documento propio (`docs/security-audit-2026-09-27.md`), referenciado desde el diseño y las tareas | Registrarlos solo en `AI_LOG.md`, o reescribir el diseño para que refleje el código | `AI_LOG.md` es un registro cronológico de prompts, no una especificación: los hallazgos de seguridad deben entrar al diseño, y su evolución debe ser una decisión explícita (implementar, degradar la especificación, o aceptar el riesgo como tal), no una omisión. El ID da dueño, tarea y test a cada hallazgo, y una auditoría futura compara contra este documento sin sobrescribirlo. Ver §7.3 |
+| 14 | Revocación de JWT con `SecurityStamp` en `User` + claim + evento `OnTokenValidated` (SEC-11) | Aceptar que el JWT sobreviva al reseteo hasta expirar (60 min) / implementar refresh tokens / lista negra en Redis | El diseño §7.2 ya prometía que el JWT dejaba de ser válido tras el reseteo, y el código no lo cumplía. Degradar la especificación para que coincida con el código sería convertir un bug en una decisión de diseño. `SecurityStamp` es invalidación stateless: no requiere store nuevo, escala como el resto, y el costo es una columna y un evento. La lista negra exigiría infraestructura que el proyecto no tiene |
+| 15 | `SecurityStamp` verificado contra la BD en cada validación de token, asumiendo un query por request | Emitir un JWT de corta duración (15 min) como mitigación parcial | Acortar la ventana de exposición no elimina el acceso no autorizado tras un reseteo de contraseña, solo lo reduce. Con el Postgres serverless ya existente en el proyecto, una lectura adicional por request es un costo aceptable frente a una brecha de autorización real, y es transparente para el usuario porque no cambia el contrato ni la experiencia de sesión |
