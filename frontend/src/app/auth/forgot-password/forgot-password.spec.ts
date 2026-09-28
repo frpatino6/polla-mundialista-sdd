@@ -6,7 +6,7 @@ import { ForgotPassword } from './forgot-password';
 import { FORGOT_PASSWORD_COPY } from './forgot-password.copy';
 
 // Mensaje genérico tal como lo devuelve la API (anti-enumeración, docs/design.md §7.2):
-// es copy del servidor, no de la interfaz, por eso vive acá y no en FORGOT_PASSWORD_COPY.
+// es copy del servidor, no de la interfaz, por eso vive aquí y no en FORGOT_PASSWORD_COPY.
 const serverGenericMessage = 'Si el correo está registrado, se enviará un enlace de recuperación.';
 
 describe('ForgotPassword', () => {

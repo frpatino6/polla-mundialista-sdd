@@ -17,7 +17,7 @@ import { PREDICTIONS_COPY } from './predictions.copy';
 const NOW = new Date('2026-06-10T12:00:00Z');
 
 // Mensaje tal como lo devuelve la API en el 409 de kickoff: es copy del servidor,
-// no de la interfaz, por eso vive acá y no en PREDICTIONS_COPY.
+// no de la interfaz, por eso vive aquí y no en PREDICTIONS_COPY.
 const serverKickoffConflict = 'El partido ya inició.';
 
 function createMatch(overrides: Partial<MatchDto> = {}): MatchDto {

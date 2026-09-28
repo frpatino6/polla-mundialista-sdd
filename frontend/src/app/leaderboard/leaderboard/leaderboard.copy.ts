@@ -17,5 +17,5 @@ export const LEADERBOARD_COPY = {
       exactPredictions: 'Marcadores exactos',
     },
   },
-  currentUser: { badge: 'Vos', srOnly: '(tu usuario)' },
+  currentUser: { badge: 'Tú', srOnly: '(tu usuario)' },
 } as const;

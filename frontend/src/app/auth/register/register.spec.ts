@@ -6,7 +6,7 @@ import { Register } from './register';
 import { REGISTER_COPY } from './register.copy';
 
 // Mensaje tal como lo devuelve la API cuando el email ya existe: es copy del servidor,
-// no de la interfaz, por eso vive acá y no en REGISTER_COPY.
+// no de la interfaz, por eso vive aquí y no en REGISTER_COPY.
 const serverError = 'El email ya está registrado.';
 
 describe('Register', () => {

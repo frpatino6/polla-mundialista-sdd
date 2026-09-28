@@ -39,7 +39,7 @@ export class Navbar {
    * inactivo comparten utilidades de color (text, border-color, background) y
    * dos clases que colisionan en el mismo atributo class se resuelven por orden
    * en la hoja de estilos, no por intención. Con @if/signal cada estado
-   * declara su lista completa y no hay ambigüedad. aria-current se escribe acá
+   * declara su lista completa y no hay ambigüedad. aria-current se escribe aquí
    * mismo para no depender de ariaCurrentWhenActive.
    */
   onActiveChange(href: string, isActive: boolean): void {

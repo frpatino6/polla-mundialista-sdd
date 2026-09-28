@@ -3,7 +3,7 @@ import { MATCHES_COPY } from '../../core/copy/matches.copy';
 export const PREDICTIONS_COPY = {
   title: 'Predicciones del Torneo',
   subtitle:
-    'Cargá el marcador que creés para cada partido. Podés cambiar tu predicción todas las veces que quieras: se bloquea en el momento exacto en que arranca el partido.',
+    'Carga el marcador que crees para cada partido. Puedes cambiar tu predicción todas las veces que quieras: se bloquea en el momento exacto en que arranca el partido.',
   states: {
     loading: MATCHES_COPY.states.loading,
     loadError: MATCHES_COPY.states.loadError,

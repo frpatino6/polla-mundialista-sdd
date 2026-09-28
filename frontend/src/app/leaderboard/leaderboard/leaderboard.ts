@@ -18,7 +18,7 @@ import { LEADERBOARD_COPY } from './leaderboard.copy';
  * ranking actualizado, nunca uno obsoleto.
  *
  * La fila del usuario en curso se resalta con un fondo tenue y, para no
- * depender solo del color, con un marcador de texto ("Vos" visible y
+ * depender solo del color, con un marcador de texto ("Tú" visible y
  * "(tu usuario)" solo para lectores de pantalla).
  */
 @Component({

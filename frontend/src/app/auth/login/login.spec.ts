@@ -6,7 +6,7 @@ import { Login } from './login';
 import { LOGIN_COPY } from './login.copy';
 
 // Mensaje tal como lo devuelve la API en un fallo de autenticación: es copy del servidor,
-// no de la interfaz, por eso vive acá y no en LOGIN_COPY.
+// no de la interfaz, por eso vive aquí y no en LOGIN_COPY.
 const serverError = 'Credenciales inválidas.';
 
 describe('Login', () => {

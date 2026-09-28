@@ -38,7 +38,7 @@ interface AdminMatchViewModel {
  * esta pantalla solo refleja el nuevo estado del partido (fila actualizada),
  * no el leaderboard/historial (Tarea #13, fuera de alcance aquí).
  *
- * A diferencia de Predicciones, acá los labels "Local" y "Visitante" quedan
+ * A diferencia de Predicciones, aquí los labels "Local" y "Visitante" quedan
  * visibles: el admin carga el marcador real, no una predicción, y las dos
  * columnas no se distinguen por el contexto visual de la card.
  */

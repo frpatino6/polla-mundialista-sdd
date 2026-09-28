@@ -6,7 +6,7 @@ import { ResetPassword } from './reset-password';
 import { RESET_PASSWORD_COPY } from './reset-password.copy';
 
 // Mensajes tal como los devuelve la API (confirmación y errores de dominio del token,
-// docs/design.md §7.2): son copy del servidor, no de la interfaz, por eso viven acá y no en
+// docs/design.md §7.2): son copy del servidor, no de la interfaz, por eso viven aquí y no en
 // RESET_PASSWORD_COPY.
 const serverSuccess = 'Contraseña actualizada correctamente.';
 const serverInvalidToken = 'El token de reseteo no es válido.';

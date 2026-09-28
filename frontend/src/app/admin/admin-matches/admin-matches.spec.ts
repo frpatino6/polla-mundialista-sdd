@@ -9,7 +9,7 @@ import { AdminMatches } from './admin-matches';
 import { ADMIN_MATCHES_COPY } from './admin-matches.copy';
 
 // Mensaje tal como lo devuelve la API al rechazar un marcador: es copy del
-// servidor, no de la interfaz, por eso vive acá y no en ADMIN_MATCHES_COPY.
+// servidor, no de la interfaz, por eso vive aquí y no en ADMIN_MATCHES_COPY.
 const serverError = 'Marcador inválido.';
 
 function createMatch(overrides: Partial<MatchDto> = {}): MatchDto {

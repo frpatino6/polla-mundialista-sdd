@@ -3,12 +3,12 @@ import { MATCHES_COPY } from '../../core/copy/matches.copy';
 export const ADMIN_MATCHES_COPY = {
   title: 'Panel Admin — Resultados',
   subtitle:
-    'Cargá el resultado real de cada partido. Al guardar, el backend recalcula los puntos de todas las predicciones afectadas y el leaderboard y el historial quedan actualizados.',
+    'Carga el resultado real de cada partido. Al guardar, el backend recalcula los puntos de todas las predicciones afectadas y el leaderboard y el historial quedan actualizados.',
   states: {
     loading: MATCHES_COPY.states.loading,
     loadError: MATCHES_COPY.states.loadError,
     empty:
-      'Todavía no hay partidos cargados. Cargá los partidos desde la base de datos o contactá al administrador.',
+      'Todavía no hay partidos cargados. Carga los partidos desde la base de datos o contacta al administrador.',
   },
   match: {
     vs: MATCHES_COPY.vs,
