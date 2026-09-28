@@ -7,7 +7,9 @@ Prueba técnica Bizagi: aplicación full-stack para registrar predicciones de ma
 | Servicio | URL |
 |---|---|
 | Frontend | https://polla-mundialista-frontend.onrender.com |
-| Backend (API + Swagger) | https://polla-mundialista-sdd.onrender.com/swagger |
+| Backend (API) | https://polla-mundialista-sdd.onrender.com |
+
+> **Swagger UI no está disponible en producción a propósito** (`Program.cs` solo lo habilita bajo `Development`, ver §7.1 de `docs/design.md`) — para probarlo hay que correr el backend local (ver más abajo) y abrir `http://localhost:5282/swagger`. En producción, la API se explora con la [colección de Postman](./docs/postman/PollaMundialista.postman_collection.json) o el botón "Authorize" de Swagger local contra la misma base Neon.
 
 **Credenciales de prueba:**
 
