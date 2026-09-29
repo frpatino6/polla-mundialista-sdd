@@ -8,5 +8,9 @@ export const AUTH_COPY = {
     error: 'Ingresa un email válido.',
   },
   passwordField: { label: 'Contraseña' },
+  passwordPolicy: {
+    placeholder: 'Mínimo 8 caracteres',
+    error: 'La contraseña debe tener al menos 8 caracteres.',
+  },
   passwordToggle: { show: 'Mostrar contraseña', hide: 'Ocultar contraseña' },
 } as const;

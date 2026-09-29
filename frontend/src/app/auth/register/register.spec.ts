@@ -255,6 +255,28 @@ describe('Register', () => {
     expect(component.form.valid).toBe(true);
   });
 
+  it('marks the form invalid when the password is shorter than the backend minimum', () => {
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret1',
+      confirmPassword: 'secret1',
+    });
+
+    expect(component.form.controls.password.hasError('minlength')).toBe(true);
+    expect(component.form.invalid).toBe(true);
+  });
+
+  it('marks the form valid when the password meets the backend minimum', () => {
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret12',
+      confirmPassword: 'secret12',
+    });
+
+    expect(component.form.controls.password.hasError('minlength')).toBe(false);
+    expect(component.form.valid).toBe(true);
+  });
+
   it('does not flag a mismatch while confirmPassword is still empty', () => {
     component.form.setValue({
       email: 'new@example.com',

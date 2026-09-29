@@ -34,8 +34,6 @@ const DELIBERATELY_DUPLICATED_COPY: Readonly<Record<string, string>> = {
   'Mi Historial': 'Etiqueta del nav vs. título de página: pueden divergir legitimamente.',
   Puntos:
     'Columna de historial vs. columna de leaderboard: pueden divergir ("Puntos" vs "Puntos totales").',
-  'La contraseña debe tener al menos 6 caracteres.':
-    'Atada a la regla de validación, no al copy (reset-password usa mínimo 8): la frase la genera la regla, no un catálogo.',
 };
 
 const collectStrings = (node: unknown, path: string, into: Map<string, string[]>): void => {
@@ -204,6 +202,27 @@ describe('core/copy', () => {
         'REGISTER_COPY.fields.password.label',
         REGISTER_COPY.fields.password.label,
         AUTH_COPY.passwordField.label,
+      ],
+      [
+        'REGISTER_COPY.fields.password.placeholder',
+        REGISTER_COPY.fields.password.placeholder,
+        AUTH_COPY.passwordPolicy.placeholder,
+      ],
+      [
+        'RESET_PASSWORD_COPY.fields.newPassword.placeholder',
+        RESET_PASSWORD_COPY.fields.newPassword.placeholder,
+        AUTH_COPY.passwordPolicy.placeholder,
+      ],
+      ['LOGIN_COPY.errors.password', LOGIN_COPY.errors.password, AUTH_COPY.passwordPolicy.error],
+      [
+        'REGISTER_COPY.errors.password',
+        REGISTER_COPY.errors.password,
+        AUTH_COPY.passwordPolicy.error,
+      ],
+      [
+        'RESET_PASSWORD_COPY.errors.newPassword',
+        RESET_PASSWORD_COPY.errors.newPassword,
+        AUTH_COPY.passwordPolicy.error,
       ],
       ['PREDICTIONS_COPY.match.vs', PREDICTIONS_COPY.match.vs, MATCHES_COPY.vs],
       ['HISTORY_COPY.match.vs', HISTORY_COPY.match.vs, MATCHES_COPY.vs],

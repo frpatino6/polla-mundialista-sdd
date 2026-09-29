@@ -11,7 +11,7 @@ export const LOGIN_COPY = {
   },
   errors: {
     email: AUTH_COPY.emailField.error,
-    password: 'La contraseña debe tener al menos 6 caracteres.',
+    password: AUTH_COPY.passwordPolicy.error,
     fallback: 'Credenciales inválidas.',
   },
   actions: {

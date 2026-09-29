@@ -6,11 +6,11 @@ export const RESET_PASSWORD_COPY = {
   subtitle: 'Ingresa el token que recibiste y elige tu nueva contraseña.',
   fields: {
     token: { label: 'Token de recuperación', placeholder: 'Pega aquí el token recibido' },
-    newPassword: { label: 'Nueva contraseña', placeholder: 'Mínimo 8 caracteres' },
+    newPassword: { label: 'Nueva contraseña', placeholder: AUTH_COPY.passwordPolicy.placeholder },
   },
   errors: {
     token: 'Ingresa el token que recibiste.',
-    newPassword: 'La contraseña debe tener al menos 8 caracteres.',
+    newPassword: AUTH_COPY.passwordPolicy.error,
     fallback: 'No se pudo restablecer la contraseña.',
   },
   actions: {
