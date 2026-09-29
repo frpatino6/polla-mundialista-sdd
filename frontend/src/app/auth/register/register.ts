@@ -1,8 +1,39 @@
 import { Component, inject, signal } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  ReactiveFormsModule,
+  FormBuilder,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { REGISTER_COPY } from './register.copy';
+
+// Validador a nivel de grupo (no en el control individual): compara password/confirmPassword
+// y marca el error `mismatch` en confirmPassword solo cuando este ya tiene algo escrito, para
+// no mostrar "no coinciden" mientras el campo sigue vacío (docs/design.md §5.1).
+function passwordsMatchValidator(group: AbstractControl): ValidationErrors | null {
+  const password = group.get('password');
+  const confirmPassword = group.get('confirmPassword');
+  if (!password || !confirmPassword) {
+    return null;
+  }
+
+  const hasMismatch = !!confirmPassword.value && password.value !== confirmPassword.value;
+  const { mismatch, ...otherErrors } = confirmPassword.errors ?? {};
+
+  if (hasMismatch) {
+    confirmPassword.setErrors({ ...otherErrors, mismatch: true });
+    return { mismatch: true };
+  }
+
+  if (mismatch) {
+    confirmPassword.setErrors(Object.keys(otherErrors).length ? otherErrors : null);
+  }
+
+  return null;
+}
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink],
@@ -20,14 +51,23 @@ export class Register {
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly passwordVisible = signal(false);
+  readonly confirmPasswordVisible = signal(false);
 
-  readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-  });
+  readonly form = this.fb.nonNullable.group(
+    {
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', [Validators.required]],
+    },
+    { validators: passwordsMatchValidator },
+  );
 
   togglePasswordVisibility(): void {
     this.passwordVisible.update((visible) => !visible);
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.confirmPasswordVisible.update((visible) => !visible);
   }
 
   submit(): void {

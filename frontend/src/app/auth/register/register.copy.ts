@@ -8,10 +8,15 @@ export const REGISTER_COPY = {
   fields: {
     email: { label: AUTH_COPY.emailField.label, placeholder: AUTH_COPY.emailField.placeholder },
     password: { label: AUTH_COPY.passwordField.label, placeholder: 'Mínimo 6 caracteres' },
+    confirmPassword: { label: 'Confirmar contraseña', placeholder: 'Repite tu contraseña' },
   },
   errors: {
     email: AUTH_COPY.emailField.error,
     password: 'La contraseña debe tener al menos 6 caracteres.',
+    confirmPassword: {
+      required: 'Confirma tu contraseña.',
+      mismatch: 'Las contraseñas no coinciden.',
+    },
     fallback: 'No se pudo completar el registro.',
   },
   actions: {
@@ -19,6 +24,8 @@ export const REGISTER_COPY = {
     submitting: 'Creando cuenta…',
     showPassword: AUTH_COPY.passwordToggle.show,
     hidePassword: AUTH_COPY.passwordToggle.hide,
+    showConfirmPassword: 'Mostrar confirmación de contraseña',
+    hideConfirmPassword: 'Ocultar confirmación de contraseña',
   },
   hasAccount: { prompt: '¿Ya tienes cuenta?', cta: AUTH_COPY.signIn.cta },
 } as const;

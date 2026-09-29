@@ -102,11 +102,12 @@ Formato de commit sugerido: `feat(scope): descripción` / `test(scope): descripc
 
 ---
 
-### Tarea #10 — Frontend: Scaffolding + Módulo Auth — ✅ COMPLETA
+### Tarea #10 — Frontend: Scaffolding + Módulo Auth 
 **Agente sugerido:** `frontend-expert`
 **Entregable:** workspace Angular (standalone), Tailwind/Angular Material configurado, `core/` (interceptor JWT, guards), pantallas de login/registro.
-**Criterios de aceptación:** login exitoso contra la API real (Docker Compose) redirige a la pantalla de predicciones; rutas protegidas redirigen a login si no hay sesión.
+**Criterios de aceptación:** login exitoso contra la API real (Docker Compose) redirige a la pantalla de predicciones; rutas protegidas redirigen a login si no hay sesión. El formulario de Registro incluye campo `Confirmar contraseña`, con validación cruzada en tiempo real que impide el envío si no coincide con `Password` (ver `design.md` §5.1).
 **Estado:** Workspace Angular standalone con Tailwind configurado, `core/` con interceptor JWT y guards (`authGuard`, `adminGuard`), y pantallas de login y registro con el lenguaje visual de `design.md` §5.1. Las rutas protegidas redirigen a login sin sesión. Specs de componente en verde (commits `46d3d1e`, `8d47bfb`, `127ec56`).
+**Nota (2026-09-28):** se detectó post-implementación que Registro no pedía "Confirmar contraseña" — hueco de UX/validación, no de contrato de API (el backend nunca vio ni necesita ese campo, es puramente client-side). Corregido agregando el criterio de aceptación de arriba y el campo/validación en el componente — ver `design.md` §5.1 para el diseño exacto.
 **Dependencias:** Tarea #5 (API de Auth disponible).
 
 ---

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Validators } from '@angular/forms';
 import { provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -38,7 +39,7 @@ describe('Register', () => {
   });
 
   it('does not call AuthService.register when the form is invalid', () => {
-    component.form.setValue({ email: 'not-an-email', password: '' });
+    component.form.setValue({ email: 'not-an-email', password: '', confirmPassword: '' });
 
     component.submit();
 
@@ -49,7 +50,11 @@ describe('Register', () => {
     authServiceSpy.register.mockReturnValue(
       of({ id: 'u1', email: 'new@example.com', role: 'User' }),
     );
-    component.form.setValue({ email: 'new@example.com', password: 'secret123' });
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    });
 
     component.submit();
 
@@ -61,7 +66,11 @@ describe('Register', () => {
     authServiceSpy.register.mockReturnValue(
       throwError(() => ({ error: { message: serverError } })),
     );
-    component.form.setValue({ email: 'dup@example.com', password: 'secret123' });
+    component.form.setValue({
+      email: 'dup@example.com',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    });
 
     component.submit();
     fixture.detectChanges();
@@ -73,7 +82,11 @@ describe('Register', () => {
 
   it('falls back to the copy error message when the API error carries no message', () => {
     authServiceSpy.register.mockReturnValue(throwError(() => ({})));
-    component.form.setValue({ email: 'dup@example.com', password: 'secret123' });
+    component.form.setValue({
+      email: 'dup@example.com',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    });
 
     component.submit();
     fixture.detectChanges();
@@ -85,7 +98,11 @@ describe('Register', () => {
   });
 
   it('toggles the password visibility without submitting the form', () => {
-    component.form.setValue({ email: 'new@example.com', password: 'secret123' });
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    });
     fixture.detectChanges();
 
     const input = host().querySelector('#password') as HTMLInputElement;
@@ -114,7 +131,11 @@ describe('Register', () => {
 
   it('disables the submit button and shows the loading state while the request is in flight', () => {
     authServiceSpy.register.mockReturnValue(new Subject<unknown>().asObservable());
-    component.form.setValue({ email: 'new@example.com', password: 'secret123' });
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    });
 
     component.submit();
     fixture.detectChanges();
@@ -136,7 +157,7 @@ describe('Register', () => {
     expect(password.getAttribute('autocomplete')).toBe('new-password');
     expect(email.getAttribute('aria-describedby')).toBeNull();
 
-    component.form.setValue({ email: 'not-an-email', password: '' });
+    component.form.setValue({ email: 'not-an-email', password: '', confirmPassword: '' });
     component.submit();
     fixture.detectChanges();
 
@@ -180,7 +201,7 @@ describe('Register', () => {
   });
 
   it('renders the field validation messages from the copy', () => {
-    component.form.setValue({ email: 'not-an-email', password: '' });
+    component.form.setValue({ email: 'not-an-email', password: '', confirmPassword: '' });
     component.submit();
     fixture.detectChanges();
 
@@ -196,5 +217,115 @@ describe('Register', () => {
     expect(host().querySelector('#remember-me')).toBeNull();
     expect(host().querySelector('[aria-disabled="true"]')).toBeNull();
     expect(host().querySelector('a[href*="forgot-password"]')).toBeNull();
+  });
+
+  it('requires confirmPassword and renders its accessible label', () => {
+    expect(host().querySelector('label[for="confirmPassword"]')).toBeTruthy();
+    expect(component.form.controls.confirmPassword.hasValidator(Validators.required)).toBe(true);
+
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: '',
+    });
+
+    expect(component.form.controls.confirmPassword.hasError('required')).toBe(true);
+    expect(component.form.invalid).toBe(true);
+  });
+
+  it('marks the form invalid when confirmPassword does not match password', () => {
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: 'different1',
+    });
+
+    expect(component.form.controls.confirmPassword.hasError('mismatch')).toBe(true);
+    expect(component.form.invalid).toBe(true);
+  });
+
+  it('marks the form valid when confirmPassword matches password', () => {
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    });
+
+    expect(component.form.controls.confirmPassword.hasError('mismatch')).toBe(false);
+    expect(component.form.valid).toBe(true);
+  });
+
+  it('does not flag a mismatch while confirmPassword is still empty', () => {
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: '',
+    });
+
+    expect(component.form.controls.confirmPassword.hasError('mismatch')).toBe(false);
+  });
+
+  it('shows the mismatch error message and hides it once the passwords match', () => {
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: 'different1',
+    });
+    component.form.controls.confirmPassword.markAsTouched();
+    fixture.detectChanges();
+
+    const errorEl = host().querySelector('#confirmPassword-error');
+    expect(errorEl?.textContent?.trim()).toBe(REGISTER_COPY.errors.confirmPassword.mismatch);
+
+    component.form.controls.confirmPassword.setValue('secret123');
+    fixture.detectChanges();
+
+    expect(host().querySelector('#confirmPassword-error')).toBeNull();
+  });
+
+  it('disables the submit button while confirmPassword does not match', () => {
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: 'different1',
+    });
+    fixture.detectChanges();
+
+    const button = host().querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(component.form.invalid).toBe(true);
+
+    component.form.controls.confirmPassword.setValue('secret123');
+    fixture.detectChanges();
+
+    expect(component.form.valid).toBe(true);
+    expect(button.disabled).toBe(false);
+  });
+
+  it('toggles the confirmPassword visibility independently from the password field', () => {
+    component.form.setValue({
+      email: 'new@example.com',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    });
+    fixture.detectChanges();
+
+    const passwordInput = host().querySelector('#password') as HTMLInputElement;
+    const confirmInput = host().querySelector('#confirmPassword') as HTMLInputElement;
+    expect(confirmInput.type).toBe('password');
+    expect(confirmInput.getAttribute('autocomplete')).toBe('new-password');
+
+    (
+      host().querySelector(
+        `[aria-label="${REGISTER_COPY.actions.showConfirmPassword}"]`,
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(confirmInput.type).toBe('text');
+    expect(passwordInput.type).toBe('password');
+    const hideToggle = host().querySelector(
+      `[aria-label="${REGISTER_COPY.actions.hideConfirmPassword}"]`,
+    ) as HTMLButtonElement;
+    expect(hideToggle.getAttribute('aria-pressed')).toBe('true');
   });
 });
