@@ -186,39 +186,52 @@ Esta organización separa contenido de estructura sin introducir ahora una depen
 
 ## 6. Modelo de Datos
 
+> **Actualizado en el cierre de documentación** para reflejar el esquema real de la base (verificado contra Neon vía `information_schema`/`pg_indexes`, no solo el modelo EF Core en código): `MatchResult` es una tabla propia (owned entity 1:0..1 de `Match`, no columnas sueltas), y se agregó `PasswordResetToken` (Tarea #14, no existía cuando se escribió esta sección por primera vez). Export como imagen en [`docs/architecture/erd.svg`](../architecture/erd.svg) / [`erd.png`](../architecture/erd.png), fuente versionada en [`docs/architecture/erd.mmd`](../architecture/erd.mmd).
+
 ```mermaid
 erDiagram
   USER ||--o{ PREDICTION : registra
+  USER ||--o{ PASSWORDRESETTOKEN : solicita
   MATCH ||--o{ PREDICTION : recibe
+  MATCH ||--o| MATCHRESULT : tiene
   USER {
-    guid Id
-    string Email
+    guid Id PK
+    string Email UK
     string PasswordHash
-    string Role
+    int Role "0=User, 1=Admin"
   }
   MATCH {
-    guid Id
-    MatchGroup Group "A, B"
+    guid Id PK
+    string Group "A, B — MatchGroup, HasConversion<string>"
     string HomeTeam
     string AwayTeam
     datetime KickoffAt
-    int RealHomeScore "nullable"
-    int RealAwayScore "nullable"
+  }
+  MATCHRESULT {
+    guid MatchId PK "también FK a Match.Id, 1:1, ON DELETE CASCADE"
+    int HomeScore
+    int AwayScore
   }
   PREDICTION {
-    guid Id
-    guid UserId
-    guid MatchId
+    guid Id PK
+    guid UserId FK
+    guid MatchId FK
     int PredictedHomeScore
     int PredictedAwayScore
     int PointsAwarded
-    datetime UpdatedAt
+  }
+  PASSWORDRESETTOKEN {
+    guid Id PK
+    guid UserId FK
+    string TokenHash UK "hasheado, nunca el token crudo"
+    datetime ExpiresAt
+    datetime ConsumedAt "nullable, null hasta que se consume"
   }
 ```
 
-Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Prediction` para garantizar upsert (nunca dos predicciones activas del mismo usuario para el mismo partido).
+Restricción de unicidad: índice único compuesto `(UserId, MatchId)` en `Prediction` para garantizar upsert (nunca dos predicciones activas del mismo usuario para el mismo partido). `Email` en `User` y `TokenHash` en `PasswordResetToken` también son únicos.
 
-`Match.Group` es de tipo `MatchGroup`, con valores `A` y `B`; el Domain no decide la validez del grupo mediante comparaciones de strings hardcoded.
+`Match.Group` es de tipo `MatchGroup`, con valores `A` y `B`; el Domain no decide la validez del grupo mediante comparaciones de strings hardcoded. `MatchResult` no tiene FK declarada a nivel de aplicación hacia `Predictions`/`PasswordResetTokens` sobre `User` — `UserId` en esas dos tablas es un campo simple sin constraint de FK en la base real (el repositorio no usa navegación relacional de EF Core ahí), así que la integridad referencial de esos dos campos la garantiza la capa de Application, no Postgres.
 
 ## 7. Contrato de API (endpoints principales)
 

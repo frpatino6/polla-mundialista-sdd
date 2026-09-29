@@ -1,0 +1,38 @@
+erDiagram
+  USER ||--o{ PREDICTION : registra
+  USER ||--o{ PASSWORDRESETTOKEN : solicita
+  MATCH ||--o{ PREDICTION : recibe
+  MATCH ||--o| MATCHRESULT : tiene
+  USER {
+    guid Id PK
+    string Email UK
+    string PasswordHash
+    int Role "0=User, 1=Admin"
+  }
+  MATCH {
+    guid Id PK
+    string Group "A, B — MatchGroup, HasConversion<string>"
+    string HomeTeam
+    string AwayTeam
+    datetime KickoffAt
+  }
+  MATCHRESULT {
+    guid MatchId PK "también FK a Match.Id, 1:1, ON DELETE CASCADE"
+    int HomeScore
+    int AwayScore
+  }
+  PREDICTION {
+    guid Id PK
+    guid UserId FK
+    guid MatchId FK
+    int PredictedHomeScore
+    int PredictedAwayScore
+    int PointsAwarded
+  }
+  PASSWORDRESETTOKEN {
+    guid Id PK
+    guid UserId FK
+    string TokenHash UK "hasheado, nunca el token crudo"
+    datetime ExpiresAt
+    datetime ConsumedAt "nullable, null hasta que se consume"
+  }

@@ -38,7 +38,7 @@ Prueba técnica Bizagi: aplicación full-stack para registrar predicciones de ma
 
 ## Arquitectura
 
-Diseño completo (Clean Architecture, modelo de datos, contrato de API, decisiones ADR) en [`docs/design.md`](./docs/design.md). Diagramas C4 (contexto, contenedores, componentes de la API — fuente `.mmd` y exportados a `.svg`/`.png`, reflejando el sistema realmente desplegado) en [`docs/architecture/`](./docs/architecture/).
+Diseño completo (Clean Architecture, modelo de datos, contrato de API, decisiones ADR) en [`docs/design.md`](./docs/design.md). Diagramas C4 (contexto, contenedores, componentes de la API) y el **esquema de la base de datos** (diagrama entidad-relación, verificado contra el esquema real en Neon) — fuente `.mmd` y exportados a `.svg`/`.png` — en [`docs/architecture/`](./docs/architecture/): [`erd.svg`](./docs/architecture/erd.svg) para el modelo de datos (base relacional Postgres), `c4-*.svg` para la arquitectura de contenedores/componentes.
 
 ## Cómo correr el backend localmente
 
