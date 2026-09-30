@@ -16,3 +16,6 @@ npm-debug.log*
 
 ## Claude Code (local secrets/overrides — nunca commitear)
 .claude/settings.local.json
+
+## Archify (carpetas de trabajo intermedias; el HTML final va a docs/architecture/)
+.archify/

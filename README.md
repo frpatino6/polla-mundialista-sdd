@@ -38,7 +38,7 @@ Prueba técnica Bizagi: aplicación full-stack para registrar predicciones de ma
 
 ## Arquitectura
 
-Diseño completo (Clean Architecture, modelo de datos, contrato de API, decisiones ADR) en [`docs/design.md`](./docs/design.md). Diagramas C4 (contexto, contenedores, componentes de la API) y el **esquema de la base de datos** (diagrama entidad-relación, verificado contra el esquema real en Neon) — fuente `.mmd` y exportados a `.svg`/`.png` — en [`docs/architecture/`](./docs/architecture/): [`erd.svg`](./docs/architecture/erd.svg) para el modelo de datos (base relacional Postgres), `c4-*.svg` para la arquitectura de contenedores/componentes.
+Diseño completo (Clean Architecture, modelo de datos, contrato de API, decisiones ADR) en [`docs/design.md`](./docs/design.md). Diagramas C4 (contexto, contenedores, componentes de la API) y el **esquema de la base de datos** (diagrama entidad-relación, verificado contra el esquema real en Neon) — fuente `.mmd` y exportados a `.svg`/`.png` — en [`docs/architecture/`](./docs/architecture/): [`erd.svg`](./docs/architecture/erd.svg) para el modelo de datos (base relacional Postgres), `c4-*.svg` para la arquitectura de contenedores/componentes. Además, [`sequence-recalculo-puntos.html`](./docs/architecture/sequence-recalculo-puntos.html) es un diagrama de secuencia interactivo (generado con [Archify](https://github.com/tt-a1i/archify), verificado contra el código real) del flujo Admin carga resultado → recálculo de puntos vía Mediator → `ScoringEngine`.
 
 ## Cómo correr el backend localmente
 
