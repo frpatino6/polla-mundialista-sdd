@@ -40,6 +40,8 @@ Prueba técnica Bizagi: aplicación full-stack para registrar predicciones de ma
 
 Diseño completo (Clean Architecture, modelo de datos, contrato de API, decisiones ADR) en [`docs/design.md`](./docs/design.md). Diagramas C4 (contexto, contenedores, componentes de la API) y el **esquema de la base de datos** (diagrama entidad-relación, verificado contra el esquema real en Neon) — fuente `.mmd` y exportados a `.svg`/`.png` — en [`docs/architecture/`](./docs/architecture/): [`erd.svg`](./docs/architecture/erd.svg) para el modelo de datos (base relacional Postgres), `c4-*.svg` para la arquitectura de contenedores/componentes.
 
+Además, en [`docs/archify/`](./docs/archify/) hay 6 diagramas interactivos (HTML autocontenido, abrir directo en el navegador) generados con [Archify](https://github.com/tt-a1i/archify) a partir de evidencia real del código: arquitectura interna del backend (Clean Architecture), despliegue en Render, workflow de recuperación de contraseña, secuencia de recálculo de puntos, dataflow del seeder de partidos y ciclo de vida del token de reseteo — ver el detalle de cada uno en [`docs/archify/README.md`](./docs/archify/README.md).
+
 ## Cómo correr el backend localmente
 
 Requiere el SDK de .NET 10 y acceso a una base Postgres (Neon remoto real u otro Postgres — el proyecto no fuerza Neon, solo fue la que se usó en desarrollo).
